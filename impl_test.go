@@ -1,8 +1,8 @@
 /*
- * Copyright (c) <year>-present unTill Pro, Ltd.
+ * Copyright (c) 2021-present unTill Pro, Ltd.
  */
 
-package itemplate
+package istoragecas
 
 import (
 	"testing"
