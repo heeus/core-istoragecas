@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-present unTill Pro, Ltd.
+ * Copyright (c) 2021-present Sigma-Soft, Ltd.
  */
 
 package istoragecas
