@@ -1,0 +1,19 @@
+name: check-copyright
+on:
+  push:
+    tags:
+      - v*
+    branches:
+      - master
+      - main
+  pull_request:
+jobs:
+  check-copyright:
+    name: check-copyright
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check copyright
+      run: sh ./.github/scripts/check_copyright.sh 
+      shell: bash 
