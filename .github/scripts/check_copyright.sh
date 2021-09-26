@@ -1,7 +1,8 @@
 #!/bin/bash
 
 err="0"
-if [ -f "./.github/scripts/copyright_exception.conf" ]
+conffilename="./.github/scripts/copyright_exception.conf"
+if [ -f ${conffilename} ]
 then
   i=0
   while read line
@@ -20,17 +21,26 @@ then
     then
 	break
     fi
-  done < "./.github/scripts/copyright_exception.conf" 
+  done < ${conffilename}
 fi
 
 printbad() {
   for filename in $1/*.go
   do
-    if ! grep -Fq "Copyright (c) 2021-present ${2}, Ltd." $filename
-    then	
-      err="1"
-      echo "File: $filename"
+    strfound=1
+    if grep -Eq "Copyright \(c\) 202[1-9]-present ${2}, Ltd." $filename
+    then
+      strfound=0
     fi
+    if grep -Eq "Copyright \(c\) 202[1-9]-present unTill Pro, Ltd., ${2}, Ltd." $filename
+    then
+      strfound=0	
+    fi
+    if [ $strfound -eq 1 ]
+    then
+      err="1"
+      echo "File: $filename" 
+    fi	
   done
 
   for dirname in $1/* 
