@@ -19,6 +19,15 @@ printbad() {
       echo "File: $filename" 
     fi	
   done
+
+  for dirname in $1/* 
+  do 
+     dir=$dirname
+     if [ -d "$dirname" ]
+     then
+       printbad $dir $cname
+     fi
+  done
 }  
 
 printbad "./."
@@ -30,4 +39,3 @@ then
     echo "***************************************************************"
     exit 1
 fi
-
