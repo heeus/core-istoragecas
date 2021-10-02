@@ -1,11 +1,10 @@
 name: Go
-on: [push, pull_request_target]
+on: [push, pull_request]
 jobs:
-
+  
   build:
     name: Build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     steps:
 
     - name: Set up Go
@@ -29,3 +28,6 @@ jobs:
       with:
         token: ${{ secrets.REPOREADING_TOKEN }}
         codecov-token: ${{ secrets.CODECOV_TOKEN }}
+  
+    - name: Linters
+      run: curl -s https://raw.githubusercontent.com/untillpro/ci-action/master/scripts/gbash.sh | bash -s "$(go env GOPATH)"
