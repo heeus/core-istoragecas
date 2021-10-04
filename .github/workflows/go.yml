@@ -26,6 +26,7 @@ jobs:
     - name: CI
       uses: untillpro/ci-action@master
       with:
+	organization: 'heeus'
         token: ${{ secrets.REPOREADING_TOKEN }}
         codecov-token: ${{ secrets.CODECOV_TOKEN }}
   
