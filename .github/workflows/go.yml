@@ -1,7 +1,7 @@
 name: Go
-on: [push, pull_request_target]
+on: [push, pull_request]
 jobs:
-
+  
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -26,12 +26,9 @@ jobs:
     - name: CI
       uses: untillpro/ci-action@master
       with:
+        organization: 'heeus'
         token: ${{ secrets.REPOREADING_TOKEN }}
         codecov-token: ${{ secrets.CODECOV_TOKEN }}
-
-    - name: Install golangci-lint
-      run: curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(go env GOPATH)/bin v1.42.1
-
-    - name: Run golangci-lint
-      run: $(go env GOPATH)/bin/golangci-lint run        
-    
+  
+    - name: Linters
+      run: curl -s https://raw.githubusercontent.com/untillpro/ci-action/master/scripts/gbash.sh | bash -s "$(go env GOPATH)"
