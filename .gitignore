@@ -12,6 +12,7 @@
 *.out
 o
 .*/
+q.sh
 
 # But not .github
 !/.github
