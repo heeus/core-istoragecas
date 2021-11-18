@@ -7,6 +7,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+    - name: Run cassandra
+      run: |
+         docker run --name mycassandra -d cassandra:latest
+         
     - name: Set up Go
       uses: actions/setup-go@v1
       with:
@@ -29,6 +33,9 @@ jobs:
         organization: 'heeus'
         token: ${{ secrets.REPOREADING_TOKEN }}
         codecov-token: ${{ secrets.CODECOV_TOKEN }}
+  
+    - name: Check copyright
+      run: curl -s https://raw.githubusercontent.com/untillpro/ci-action/master/scripts/check_copyright.sh | bash -s "$(go env GOPATH)"
   
     - name: Linters
       run: curl -s https://raw.githubusercontent.com/untillpro/ci-action/master/scripts/gbash.sh | bash -s "$(go env GOPATH)"
