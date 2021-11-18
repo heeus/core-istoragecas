@@ -13,8 +13,6 @@ github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed h1:5upAirOpQc
 github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed/go.mod h1:tMWxXQ9wFIaZeTI9F+hmhFiGpFmhOHzyShyFUhRm0H4=
 github.com/heeus/core-istorage v0.0.0-20211112083443-e2a63b302fee h1:Gl+K1SfkQ0QqmntE7EvClAc2MGp+jsNkOisXi2U3S5w=
 github.com/heeus/core-istorage v0.0.0-20211112083443-e2a63b302fee/go.mod h1:wFEKcfaHwJnJk0MyIysZGZq0/wjpw0CaSPPiKOeapBc=
-github.com/heeus/core-istoragemem v0.0.0-20211116120046-b8612a5f146d h1:jkbMXrHF9IduZ91JfFn/D1a4Cpnvn2BxrZrg2Xbu9pk=
-github.com/heeus/core-istoragemem v0.0.0-20211116120046-b8612a5f146d/go.mod h1:PENY1wMJChJv+iEtVvtf6liehVbqH8RFBhYzTA0UBNU=
 github.com/heeus/core-istoragemem v0.0.0-20211116133021-205a91e4a890 h1:R4en+2VrZfa6EmXFsvu4DsKPe83I/R7YLxLz+umhClk=
 github.com/heeus/core-istoragemem v0.0.0-20211116133021-205a91e4a890/go.mod h1:PENY1wMJChJv+iEtVvtf6liehVbqH8RFBhYzTA0UBNU=
 github.com/heeus/core-istructs v0.0.0-20211108121715-8682d37c83cd/go.mod h1:oBnZjfHZceR9BDMvXntoryLsgsQuhiKEB11lKHAoiVI=
@@ -35,6 +33,7 @@ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/inf.v0 v0.9.1 h1:73M5CoZyi3ZLMOyDlQh031Cx6N9NDJ2Vvfl76EDAgDc=
 gopkg.in/inf.v0 v0.9.1/go.mod h1:cWUDdTG/fYaXco+Dcufb5Vnc6Gp2YChqWtbxRZE0mXw=
