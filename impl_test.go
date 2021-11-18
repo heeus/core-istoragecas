@@ -25,7 +25,7 @@ func TestBasicUsage(t *testing.T) {
 	defer tearDown()
 	rnd := rand.New(rand.NewSource(time.Now().UnixMilli()))
 	params := CassandraParams{
-		Hosts:             hosts("192.168.99.100"),
+		Hosts:             hosts("127.0.0.1"),
 		Port:              port(9042),
 		ReplicationFactor: 1,
 		Keyspace:          fmt.Sprintf("test_space_%d", rnd.Int63()),
@@ -106,7 +106,7 @@ func testAppStorage_ViewRecords_Cassandra(t *testing.T, storage istorage.IAppSto
 }
 
 func tearDown() {
-	cluster := gocql.NewCluster(strings.Split(hosts("192.168.99.100"), ",")...)
+	cluster := gocql.NewCluster(strings.Split(hosts("127.0.0.1"), ",")...)
 	cluster.Port = port(9042)
 	cluster.Consistency = gocql.Quorum
 	cluster.Timeout = ConnectionTimeout
@@ -173,7 +173,7 @@ func Test_newStorage(t *testing.T) {
 	t.Run("Should return error when keyspace is wrong", func(t *testing.T) {
 		require := require.New(t)
 		params := CassandraParams{
-			Hosts:             hosts("192.168.99.100"),
+			Hosts:             hosts("127.0.0.1"),
 			Port:              port(9042),
 			ReplicationFactor: 1,
 			Keyspace:          "wrong-keyspace",
