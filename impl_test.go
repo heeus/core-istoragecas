@@ -6,9 +6,6 @@ package istoragecas
 
 import (
 	"fmt"
-	istorage "github.com/heeus/core-istorage"
-	istoragemem "github.com/heeus/core-istoragemem"
-	"github.com/stretchr/testify/require"
 	"math/rand"
 	"os"
 	"strconv"
@@ -16,6 +13,10 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	istorage "github.com/heeus/core-istorage"
+	istoragemem "github.com/heeus/core-istoragemem"
+	"github.com/stretchr/testify/require"
 
 	"github.com/gocql/gocql"
 	istructs "github.com/heeus/core-istructs"
@@ -28,7 +29,8 @@ func TestBasicUsage(t *testing.T) {
 		Hosts:             hosts("127.0.0.1"),
 		Port:              port(9042),
 		ReplicationFactor: 1,
-		Keyspace:          fmt.Sprintf("test_space_%d", rnd.Int63()),
+		Keyspace:          "testspace",
+		//		Keyspace:          fmt.Sprintf(("testspace", rnd.Int63()),
 	}
 	storage, err := Provide()(map[istructs.AppName]CassandraParams{"": params}).AppStorage("")
 	if err != nil {
