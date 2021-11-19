@@ -7,9 +7,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Run cassandra
-      run: |
-         docker run --name mycassandra -d -p 9042:9042 -e CASSANDRA_LISTEN_ADDRESS=127.0.0.1 cassandra:3.11
+    services:
+      scylladb:
+        image: scylladb/scylla
+        ports:
+          - 9042:9042
+        options: --health-cmd "cqlsh --debug"
          
     - name: Set up Go
       uses: actions/setup-go@v1
