@@ -12,9 +12,11 @@ jobs:
         image: scylladb/scylla
         ports:
           - 9042:9042
-      options: --health-cmd "cqlsh --debug"
+        options: --health-cmd "cqlsh --debug"
 
-    - name: Set up Go
+    steps:
+
+    - name: Set up Go 1.17
       uses: actions/setup-go@v1
       with:
         go-version: 1.17
