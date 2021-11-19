@@ -8,7 +8,7 @@ jobs:
 
     services:
       scylladb:
-        image: scylladb/scylla
+        image: scylladb/scylla:latest
         ports:
           - 9042:9042
         options: --health-cmd "cqlsh --debug"
