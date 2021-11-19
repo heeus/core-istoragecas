@@ -14,12 +14,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gocql/gocql"
 	istorage "github.com/heeus/core-istorage"
 	istoragemem "github.com/heeus/core-istoragemem"
-	"github.com/stretchr/testify/require"
-
-	"github.com/gocql/gocql"
 	istructs "github.com/heeus/core-istructs"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBasicUsage(t *testing.T) {
@@ -29,8 +28,7 @@ func TestBasicUsage(t *testing.T) {
 		Hosts:             hosts("127.0.0.1"),
 		Port:              port(9042),
 		ReplicationFactor: 1,
-		Keyspace:          "testspace",
-		//		Keyspace:          fmt.Sprintf(("testspace", rnd.Int63()),
+		Keyspace:          fmt.Sprintf("testspace_%d", rnd.Int63()),
 	}
 	storage, err := Provide()(map[istructs.AppName]CassandraParams{"": params}).AppStorage("")
 	if err != nil {
@@ -118,7 +116,7 @@ func tearDown() {
 		panic(err)
 	}
 	keyspaceNames := make([]string, 0)
-	rows, err := s.Query("describe keyspaces").Iter().SliceMap()
+	rows, err := s.Query("select * from system_schema.keyspaces").Iter().SliceMap()
 	if err != nil {
 		panic(err)
 	}
