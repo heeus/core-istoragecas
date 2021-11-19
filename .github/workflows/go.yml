@@ -13,7 +13,6 @@ jobs:
         ports:
           - 9042:9042
         options: --health-cmd "cqlsh --debug"
- 
     - name: Set up Go
       uses: actions/setup-go@v1
       with:
