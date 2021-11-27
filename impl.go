@@ -82,11 +82,10 @@ func newStorage(params CassandraParams) (storage istorage.IAppStorage, err error
 		`create table if not exists records
 		(
 			wsid   		bigint,
-			qid  		smallint,
 			id_hi  		bigint,
 			id_low 		smallint,
 			data 		blob,
-			primary key	((wsid, qid, id_hi), id_low)
+			primary key	((wsid, id_hi), id_low)
 		)`,
 		`create table if not exists plog
 		(
@@ -107,12 +106,11 @@ func newStorage(params CassandraParams) (storage istorage.IAppStorage, err error
 		`create table if not exists view_records
 		(
 			wsid   			bigint,
-			partition_id	smallint,
 			qname  			smallint,
 			p_key 			blob,
 			c_col			blob,
 			value			blob,
-			primary key 	((wsid, partition_id, qname, p_key), c_col)
+			primary key 	((wsid, qname, p_key), c_col)
 		)`,
 		`create table if not exists qnames
 		(
@@ -143,16 +141,14 @@ func doWithAttempts(attempts int, delay time.Duration, cmd func() error) (err er
 	return
 }
 
-func (s *appStorage) GetRecord(table istructs.QName, workspace istructs.WSID, highConsistency bool, id istructs.RecordID, data *[]byte) (ok bool, err error) {
-	qid, err := s.GetQNameID(table)
+func (s *appStorage) GetRecord(workspace istructs.WSID, highConsistency bool, id istructs.RecordID, data *[]byte) (ok bool, err error) {
 	if err != nil {
 		return
 	}
 	*data = (*data)[0:0]
 	idHi, idLow := crackID(istructs.IDType(id))
-	err = s.session.Query("select data from records where wsid=? and qid=? and id_hi=? and id_low=?",
+	err = s.session.Query("select data from records where wsid=? and id_hi=? and id_low=?",
 		int64(workspace),
-		int16(qid),
 		idHi,
 		idLow).
 		Consistency(getConsistency(highConsistency)).
@@ -166,15 +162,10 @@ func (s *appStorage) GetRecord(table istructs.QName, workspace istructs.WSID, hi
 	return true, nil
 }
 
-func (s *appStorage) PutRecord(table istructs.QName, workspace istructs.WSID, highConsistency bool, id istructs.RecordID, data []byte) (err error) {
-	qid, err := s.GetQNameID(table)
-	if err != nil {
-		return
-	}
+func (s *appStorage) PutRecord(workspace istructs.WSID, highConsistency bool, id istructs.RecordID, data []byte) (err error) {
 	idHi, idLow := crackID(istructs.IDType(id))
-	return s.session.Query("insert into records (wsid, qid, id_hi, id_low, data) values (?,?,?,?,?)",
+	return s.session.Query("insert into records (wsid, id_hi, id_low, data) values (?,?,?,?)",
 		int64(workspace),
-		int16(qid),
 		idHi,
 		idLow,
 		data).
@@ -264,15 +255,14 @@ func (s *appStorage) ReadWLog(ctx context.Context, workspace istructs.WSID, offs
 	return
 }
 
-func (s *appStorage) PutViewRecord(view istructs.QName, partition istructs.PartitionID, workspace istructs.WSID, pKey []byte, cCols []byte, value []byte) {
+func (s *appStorage) PutViewRecord(view istructs.QName, workspace istructs.WSID, pKey []byte, cCols []byte, value []byte) {
 	qid, err := s.GetQNameID(view)
 	if err != nil {
 		//TODO panic???
 		panic(err)
 	}
-	err = s.session.Query("insert into view_records (wsid, partition_id, qname, p_key, c_col, value) values (?,?,?,?,?,?)",
+	err = s.session.Query("insert into view_records (wsid, qname, p_key, c_col, value) values (?,?,?,?,?)",
 		int64(workspace),
-		int16(partition),
 		int16(qid),
 		pKey,
 		cCols,
@@ -284,7 +274,7 @@ func (s *appStorage) PutViewRecord(view istructs.QName, partition istructs.Parti
 	}
 }
 
-func (s *appStorage) ReadView(view istructs.QName, partition istructs.PartitionID, workspace istructs.WSID, pKey []byte, partialCCols []byte, cb istorage.ViewReaderCallback) (err error) {
+func (s *appStorage) ReadView(ctx context.Context, view istructs.QName, workspace istructs.WSID, pKey []byte, partialCCols []byte, cb istorage.ViewReaderCallback) (err error) {
 	qid, err := s.GetQNameID(view)
 	if err != nil {
 		return
@@ -293,24 +283,21 @@ func (s *appStorage) ReadView(view istructs.QName, partition istructs.PartitionI
 	var q *gocql.Query
 	if c.isEmpty() {
 		q = s.session.Query("select value from view_records "+
-			"where wsid=? and partition_id=? and qname=? and p_key=?",
+			"where wsid=? and qname=? and p_key=?",
 			int64(workspace),
-			int16(partition),
 			int16(qid),
 			pKey)
 	} else if c.isMax() {
 		q = s.session.Query("select value from view_records "+
-			"where wsid=? and partition_id=? and qname=? and p_key=? and c_col>=?",
+			"where wsid=? and qname=? and p_key=? and c_col>=?",
 			int64(workspace),
-			int16(partition),
 			int16(qid),
 			pKey,
 			partialCCols)
 	} else {
 		q = s.session.Query("select value from view_records "+
-			"where wsid=? and partition_id=? and qname=? and p_key=? and c_col>=? and c_col<?",
+			"where wsid=? and qname=? and p_key=? and c_col>=? and c_col<?",
 			int64(workspace),
-			int16(partition),
 			int16(qid),
 			pKey,
 			partialCCols,
@@ -341,15 +328,14 @@ func (s *appStorage) ReadView(view istructs.QName, partition istructs.PartitionI
 	return closeScanner(nil)
 }
 
-func (s *appStorage) GetViewRecord(view istructs.QName, partition istructs.PartitionID, workspace istructs.WSID, pKey []byte, cCols []byte, data *[]byte) (ok bool, err error) {
+func (s *appStorage) GetViewRecord(view istructs.QName, workspace istructs.WSID, pKey []byte, cCols []byte, data *[]byte) (ok bool, err error) {
 	qid, err := s.GetQNameID(view)
 	if err != nil {
 		return
 	}
 	*data = (*data)[0:0]
-	err = s.session.Query("select value from view_records where wsid=? and partition_id=? and qname=? and p_key=? and c_col=?",
+	err = s.session.Query("select value from view_records where wsid=? and qname=? and p_key=? and c_col=?",
 		int64(workspace),
-		int16(partition),
 		int16(qid),
 		pKey,
 		cCols).

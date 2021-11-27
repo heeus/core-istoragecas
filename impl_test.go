@@ -5,6 +5,7 @@
 package istoragecas
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"os"
@@ -67,6 +68,9 @@ func testAppStorage_GetQNameID_Cassandra(t *testing.T, storage istorage.IAppStor
 }
 
 func testAppStorage_ViewRecords_Cassandra(t *testing.T, storage istorage.IAppStorage) {
+
+	ctx := context.Background()
+
 	t.Run("Should read view records by partial clustering columns when partial clustering columns each byte is 0xff", func(t *testing.T) {
 		require := require.New(t)
 		viewRecords := make(map[string]bool)
@@ -74,12 +78,12 @@ func testAppStorage_ViewRecords_Cassandra(t *testing.T, storage istorage.IAppSto
 			viewRecords[string(viewRecord)] = true
 			return err
 		}
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.PartitionID(200), istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff, 0xfe}, []byte("Cola"))
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.PartitionID(200), istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff, 0xff}, []byte("7up"))
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.PartitionID(200), istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xfe, 0xff}, []byte("Sprite"))
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.PartitionID(200), istructs.WSID(200), []byte{0xff}, []byte{0xfe, 0xff, 0xff}, []byte("Pepsi"))
+		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff, 0xfe}, []byte("Cola"))
+		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff, 0xff}, []byte("7up"))
+		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xfe, 0xff}, []byte("Sprite"))
+		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(200), []byte{0xff}, []byte{0xfe, 0xff, 0xff}, []byte("Pepsi"))
 
-		require.NoError(storage.ReadView(istructs.NewQName("bo", "Article"), istructs.PartitionID(200), istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff}, reader))
+		require.NoError(storage.ReadView(ctx, istructs.NewQName("bo", "Article"), istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff}, reader))
 
 		require.Len(viewRecords, 2)
 		require.True(viewRecords["Cola"])
@@ -92,12 +96,12 @@ func testAppStorage_ViewRecords_Cassandra(t *testing.T, storage istorage.IAppSto
 			viewRecords[string(viewRecord)] = true
 			return err
 		}
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.PartitionID(201), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xfe, 0xfe}, []byte("Cola"))
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.PartitionID(201), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xfe, 0xff}, []byte("7up"))
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.PartitionID(201), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff, 0xfe}, []byte("Sprite"))
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.PartitionID(201), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff, 0xff}, []byte("Pepsi"))
+		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xfe, 0xfe}, []byte("Cola"))
+		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xfe, 0xff}, []byte("7up"))
+		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff, 0xfe}, []byte("Sprite"))
+		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff, 0xff}, []byte("Pepsi"))
 
-		require.NoError(storage.ReadView(istructs.NewQName("bo", "Article"), istructs.PartitionID(201), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff}, reader))
+		require.NoError(storage.ReadView(ctx, istructs.NewQName("bo", "Article"), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff}, reader))
 
 		require.Len(viewRecords, 2)
 		require.True(viewRecords["Sprite"])
