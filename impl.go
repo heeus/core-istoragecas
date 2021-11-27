@@ -201,10 +201,7 @@ func (s *appStorage) ReadPLog(ctx context.Context, partition istructs.PartitionI
 			offsetLow).
 			Scan(&event)
 		if errors.Is(err, gocql.ErrNotFound) {
-			plogOffset = istructs.NullOffset
-		}
-		if err != nil && !errors.Is(err, gocql.ErrNotFound) {
-			return
+			return nil
 		}
 		err = cb(plogOffset, event)
 		if err != nil {
@@ -242,10 +239,7 @@ func (s *appStorage) ReadWLog(ctx context.Context, workspace istructs.WSID, offs
 			offsetLow).
 			Scan(&event)
 		if errors.Is(err, gocql.ErrNotFound) {
-			plogOffset = istructs.NullOffset
-		}
-		if err != nil && !errors.Is(err, gocql.ErrNotFound) {
-			return
+			return nil
 		}
 		err = cb(plogOffset, event)
 		if err != nil {
@@ -323,6 +317,9 @@ func (s *appStorage) ReadView(ctx context.Context, view istructs.QName, workspac
 		err = cb(viewRecord)
 		if err != nil {
 			return closeScanner(err)
+		}
+		if ctx.Err() != nil {
+			return
 		}
 	}
 	return closeScanner(nil)
