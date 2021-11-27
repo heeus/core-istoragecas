@@ -124,7 +124,8 @@ func tearDown() {
 		keyspaceNames = append(keyspaceNames, row["keyspace_name"].(string))
 	}
 	for _, keyspaceName := range keyspaceNames {
-		if strings.HasPrefix(keyspaceName, "test_space") {
+		if strings.HasPrefix(keyspaceName, "testspace") {
+			fmt.Println("Droppping  ", keyspaceName, "...")
 			err = s.Query(fmt.Sprintf("drop keyspace if exists %s", keyspaceName)).Exec()
 			if err != nil {
 				panic(err)
