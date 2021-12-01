@@ -23,6 +23,7 @@ func implAppStorageProvider(casPar CassandraParamsType, apps map[istructs.AppNam
 	if err != nil {
 		panic(err)
 	}
+
 	return provider
 }
 
