@@ -43,6 +43,45 @@ func TestBasicUsage(t *testing.T) {
 	t.Run("TestAppStorage_GetQNameID_Cassandra", func(t *testing.T) { testAppStorage_GetQNameID_Cassandra(t, storage) })
 }
 
+func TestMultiplyApps(t *testing.T) {
+	defer tearDown()
+
+	const appCount = 5
+
+	require := require.New(t)
+
+	casPar := CassandraParamsType{
+		Hosts: hosts("127.0.0.1"),
+		Port:  port(9042),
+	}
+	appPar := make(map[istructs.AppName]AppCassandraParamsType, appCount)
+	for appNo := 0; appNo < appCount; appNo++ {
+		appPar[istructs.AppName(fmt.Sprintf("app%d", appNo))] = AppCassandraParamsType{
+			Keyspace:          fmt.Sprintf("testspace_%d", appNo),
+			ReplicationFactor: 1,
+		}
+	}
+
+	wg := sync.WaitGroup{}
+
+	provide := Provide()(casPar, appPar)
+
+	testApp := func(app istructs.AppName) {
+		defer wg.Done()
+		storage, err := provide.AppStorage(app)
+		require.Nil(err)
+		istoragemem.TechnologyCompatibilityKit(t, storage)
+		testAppStorage_ViewRecords_Cassandra(t, storage)
+	}
+
+	for n := range appPar {
+		wg.Add(1)
+		go testApp(n)
+	}
+
+	wg.Wait()
+}
+
 func testAppStorage_GetQNameID_Cassandra(t *testing.T, storage istorage.IAppStorage) {
 	t.Run("Should get id concurrently", func(t *testing.T) {
 		require := require.New(t)
