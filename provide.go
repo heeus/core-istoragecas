@@ -5,6 +5,6 @@
 package istoragecas
 
 // Provide s.e.
-func Provide() AppStorageProvider {
+func Provide() AppStorageProviderFuncType {
 	return implAppStorageProvider
 }

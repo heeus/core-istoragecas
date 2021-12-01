@@ -25,17 +25,19 @@ import (
 func TestBasicUsage(t *testing.T) {
 	defer tearDown()
 	rnd := rand.New(rand.NewSource(time.Now().UnixMilli()))
-	params := CassandraParams{
-		Hosts:             hosts("127.0.0.1"),
-		Port:              port(9042),
-		ReplicationFactor: 1,
-		Keyspace:          fmt.Sprintf("testspace_%d", rnd.Int63()),
+	casPar := CassandraParamsType{
+		Hosts: hosts("127.0.0.1"),
+		Port:  port(9042),
 	}
-	storage, err := Provide()(map[istructs.AppName]CassandraParams{"": params}).AppStorage("")
+	appPar := AppCassandraParamsType{
+		Keyspace:          fmt.Sprintf("testspace_%d", rnd.Int63()),
+		ReplicationFactor: 1,
+	}
+	storage, err := Provide()(casPar, map[istructs.AppName]AppCassandraParamsType{"testApp": appPar}).AppStorage("testApp")
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("=== storage keyspace", params.Keyspace)
+	fmt.Println("=== storage keyspace", appPar.Keyspace)
 	istoragemem.TechnologyCompatibilityKit(t, storage)
 	t.Run("TestAppStorage_ViewRecords_Cassandra", func(t *testing.T) { testAppStorage_ViewRecords_Cassandra(t, storage) })
 	t.Run("TestAppStorage_GetQNameID_Cassandra", func(t *testing.T) { testAppStorage_GetQNameID_Cassandra(t, storage) })
@@ -160,34 +162,37 @@ func port(defaultValue int) int {
 
 func TestProvide(t *testing.T) {
 	require.Panics(t, func() {
-		Provide()(map[istructs.AppName]CassandraParams{"": {}})
+		Provide()(CassandraParamsType{}, map[istructs.AppName]AppCassandraParamsType{"": {}})
 	})
 }
 
 func TestAppStorageProvider_AppStorage(t *testing.T) {
 	require := require.New(t)
-	p := appStorageProvider{map[istructs.AppName]istorage.IAppStorage{}}
+	p := appStorageProviderType{
+		cache: map[istructs.AppName]istorage.IAppStorage{},
+	}
 
-	storage, err := p.AppStorage("app")
+	storage, err := p.AppStorage("testApp")
 
 	require.Nil(storage)
 	require.ErrorIs(err, istructs.ErrAppNotFound)
 }
 
 func Test_newStorage(t *testing.T) {
+	casPar := CassandraParamsType{
+		Hosts: hosts("127.0.0.1"),
+		Port:  port(9042),
+	}
+
 	t.Run("Should return error when keyspace is wrong", func(t *testing.T) {
-		require := require.New(t)
-		params := CassandraParams{
-			Hosts:             hosts("127.0.0.1"),
-			Port:              port(9042),
-			ReplicationFactor: 1,
+		appPar := AppCassandraParamsType{
 			Keyspace:          "wrong-keyspace",
+			ReplicationFactor: 1,
 		}
 
-		storage, err := newStorage(params)
-
-		require.Nil(storage)
-		require.Contains(err.Error(), "can't create keyspace")
+		require.Panics(t, func() {
+			_ = Provide()(casPar, map[istructs.AppName]AppCassandraParamsType{"testApp": appPar})
+		})
 	})
 }
 
