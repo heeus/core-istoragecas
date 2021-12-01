@@ -9,16 +9,18 @@ import (
 	istructs "github.com/heeus/core-istructs"
 )
 
-// AppStorageProvider s.e.
-type AppStorageProvider func(apps map[istructs.AppName]CassandraParams) istorage.IAppStorageProvider
+// AppStorageProviderFuncType s.e.
+type AppStorageProviderFuncType func(casPar CassandraParamsType, apps map[istructs.AppName]AppCassandraParamsType) istorage.IAppStorageProvider
 
-// CassandraParams s.e.
-type CassandraParams struct {
+type CassandraParamsType struct {
 	// Comma separated list of hosts
-	Hosts             string
-	Port              int
+	Hosts    string
+	Port     int
+	Username string
+	Pwd      string
+}
+
+type AppCassandraParamsType struct {
 	Keyspace          string
 	ReplicationFactor int
-	Username          string
-	Pwd               string
 }
