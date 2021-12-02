@@ -21,6 +21,5 @@ type CassandraParamsType struct {
 }
 
 type AppCassandraParamsType struct {
-	Keyspace          string
-	ReplicationFactor int
+	Keyspace string
 }

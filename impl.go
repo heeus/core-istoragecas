@@ -147,9 +147,6 @@ func (s *appStorageType) keyspace() string {
 }
 
 func (s *appStorageType) GetRecord(workspace istructs.WSID, highConsistency bool, id istructs.RecordID, data *[]byte) (ok bool, err error) {
-	if err != nil {
-		return
-	}
 	*data = (*data)[0:0]
 	idHi, idLow := crackID(istructs.IDType(id))
 	err = s.session.Query(fmt.Sprintf("select data from %s.records where wsid=? and id_hi=? and id_low=?", s.keyspace()),
@@ -178,18 +175,14 @@ func (s *appStorageType) PutRecord(workspace istructs.WSID, highConsistency bool
 		Exec()
 }
 
-func (s *appStorageType) PutPLogEvent(partition istructs.PartitionID, offset istructs.Offset, event []byte) {
+func (s *appStorageType) PutPLogEvent(partition istructs.PartitionID, offset istructs.Offset, event []byte) (err error) {
 	offsetHi, offsetLow := crackID(istructs.IDType(offset))
-	err := s.session.Query(fmt.Sprintf("insert into %s.plog (partition_id, offset_hi, offset_low, event) values (?,?,?,?)", s.keyspace()),
+	return s.session.Query(fmt.Sprintf("insert into %s.plog (partition_id, offset_hi, offset_low, event) values (?,?,?,?)", s.keyspace()),
 		int16(partition),
 		offsetHi,
 		offsetLow,
 		event).
 		Exec()
-	if err != nil {
-		//TODO panic?
-		panic(err)
-	}
 }
 
 func (s *appStorageType) ReadPLog(ctx context.Context, partition istructs.PartitionID, offset istructs.Offset, toReadCount int, cb istorage.LogReaderCallback) (err error) {
@@ -216,18 +209,14 @@ func (s *appStorageType) ReadPLog(ctx context.Context, partition istructs.Partit
 	return
 }
 
-func (s *appStorageType) PutWLogEvent(workspace istructs.WSID, offset istructs.Offset, event []byte) {
+func (s *appStorageType) PutWLogEvent(workspace istructs.WSID, offset istructs.Offset, event []byte) (err error) {
 	offsetHi, offsetLow := crackID(istructs.IDType(offset))
-	err := s.session.Query(fmt.Sprintf("insert into %s.wlog (wsid, offset_hi, offset_low, event) values (?,?,?,?)", s.keyspace()),
+	return s.session.Query(fmt.Sprintf("insert into %s.wlog (wsid, offset_hi, offset_low, event) values (?,?,?,?)", s.keyspace()),
 		int64(workspace),
 		offsetHi,
 		offsetLow,
 		event).
 		Exec()
-	if err != nil {
-		//TODO panic?
-		panic(err)
-	}
 }
 
 func (s *appStorageType) ReadWLog(ctx context.Context, workspace istructs.WSID, offset istructs.Offset, toReadCount int, cb istorage.LogReaderCallback) (err error) {
@@ -254,23 +243,18 @@ func (s *appStorageType) ReadWLog(ctx context.Context, workspace istructs.WSID, 
 	return
 }
 
-func (s *appStorageType) PutViewRecord(view istructs.QName, workspace istructs.WSID, pKey []byte, cCols []byte, value []byte) {
+func (s *appStorageType) PutViewRecord(view istructs.QName, workspace istructs.WSID, pKey []byte, cCols []byte, value []byte) (err error) {
 	qid, err := s.GetQNameID(view)
 	if err != nil {
-		//TODO panic???
-		panic(err)
+		return err
 	}
-	err = s.session.Query(fmt.Sprintf("insert into %s.view_records (wsid, qname, p_key, c_col, value) values (?,?,?,?,?)", s.keyspace()),
+	return s.session.Query(fmt.Sprintf("insert into %s.view_records (wsid, qname, p_key, c_col, value) values (?,?,?,?,?)", s.keyspace()),
 		int64(workspace),
 		int16(qid),
 		pKey,
 		cCols,
 		value).
 		Exec()
-	if err != nil {
-		//TODO panic???
-		panic(err)
-	}
 }
 
 func (s *appStorageType) ReadView(ctx context.Context, view istructs.QName, workspace istructs.WSID, pKey []byte, partialCCols []byte, cb istorage.ViewReaderCallback) (err error) {
@@ -281,20 +265,20 @@ func (s *appStorageType) ReadView(ctx context.Context, view istructs.QName, work
 	c := partialClusteringColumns{partialCCols}
 	var q *gocql.Query
 	if c.isEmpty() {
-		q = s.session.Query(fmt.Sprintf("select value from %s.view_records "+
+		q = s.session.Query(fmt.Sprintf("select c_col, value from %s.view_records "+
 			"where wsid=? and qname=? and p_key=?", s.keyspace()),
 			int64(workspace),
 			int16(qid),
 			pKey)
 	} else if c.isMax() {
-		q = s.session.Query(fmt.Sprintf("select value from %s.view_records "+
+		q = s.session.Query(fmt.Sprintf("select c_col, value from %s.view_records "+
 			"where wsid=? and qname=? and p_key=? and c_col>=?", s.keyspace()),
 			int64(workspace),
 			int16(qid),
 			pKey,
 			partialCCols)
 	} else {
-		q = s.session.Query(fmt.Sprintf("select value from %s.view_records "+
+		q = s.session.Query(fmt.Sprintf("select c_col, value from %s.view_records "+
 			"where wsid=? and qname=? and p_key=? and c_col>=? and c_col<?", s.keyspace()),
 			int64(workspace),
 			int16(qid),
@@ -314,12 +298,13 @@ func (s *appStorageType) ReadView(ctx context.Context, view istructs.QName, work
 		return err
 	}
 	for scanner.Next() {
+		clustCols := make([]byte, 0)
 		viewRecord := make([]byte, 0)
-		err = scanner.Scan(&viewRecord)
+		err = scanner.Scan(&clustCols, &viewRecord)
 		if err != nil {
 			return closeScanner(err)
 		}
-		err = cb(viewRecord)
+		err = cb(clustCols, viewRecord)
 		if err != nil {
 			return closeScanner(err)
 		}
