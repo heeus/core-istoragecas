@@ -7,12 +7,14 @@ package istoragecas
 
 import (
 	"fmt"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
 func Test_logIterateType_iterate(t *testing.T) {
+	const logSize = int64(100 * 1000)
 	type resultType struct {
 		parts []string
 		reads int64
@@ -24,7 +26,7 @@ func Test_logIterateType_iterate(t *testing.T) {
 		result resultType
 	}{
 		{
-			name: "0…4095: read all first partition",
+			name: "0, 4096: read all first partition",
 			iter: logIterate(0, 4096),
 			result: resultType{
 				parts: []string{"0: 0…4095"},
@@ -33,8 +35,8 @@ func Test_logIterateType_iterate(t *testing.T) {
 			},
 		},
 		{
-			name: "0…7: read 8 first recs from first partition",
-			iter: logIterate(0, 7),
+			name: "0, 8: read 8 first recs from first partition",
+			iter: logIterate(0, 8),
 			result: resultType{
 				parts: []string{"0: 0…7"},
 				reads: 8,
@@ -42,8 +44,8 @@ func Test_logIterateType_iterate(t *testing.T) {
 			},
 		},
 		{
-			name: "4090…4095: read last 6 recs from first partition",
-			iter: logIterate(4090, 4095),
+			name: "4090, 6: read last 6 recs from first partition",
+			iter: logIterate(4090, 6),
 			result: resultType{
 				parts: []string{"0: 4090…4095"},
 				reads: 6,
@@ -51,20 +53,20 @@ func Test_logIterateType_iterate(t *testing.T) {
 			},
 		},
 		{
-			name: "4090…5000: read 11 recs from tail of first partition and head of second",
-			iter: logIterate(4090, 4100),
+			name: "4090, 10: read 10 recs from tail of first partition and head of second",
+			iter: logIterate(4090, 10),
 			result: resultType{
-				parts: []string{"0: 4090…4095", "1: 0…4"},
-				reads: 11,
+				parts: []string{"0: 4090…4095", "1: 0…3"},
+				reads: 10,
 				err:   nil,
 			},
 		},
 		{
-			name: "4000…14000: read 10’001 recs from tail of first partition, across second and third, and from head of fourth",
-			iter: logIterate(4000, 14000),
+			name: "4000, 10000: read 10’000 recs from tail of first partition, across second and third, and from head of fourth",
+			iter: logIterate(4000, 10000),
 			result: resultType{
-				parts: []string{"0: 4000…4095", "1: 0…4095", "2: 0…4095", "3: 0…1712"},
-				reads: 10001,
+				parts: []string{"0: 4000…4095", "1: 0…4095", "2: 0…4095", "3: 0…1711"},
+				reads: 10000,
 				err:   nil,
 			},
 		},
@@ -83,6 +85,9 @@ func Test_logIterateType_iterate(t *testing.T) {
 			}
 
 			iterator := func(part int64, clust int16) error {
+				if part+int64(clust) >= logSize {
+					return io.EOF
+				}
 				reads++
 				return nil
 			}
