@@ -147,9 +147,6 @@ func (s *appStorageType) keyspace() string {
 }
 
 func (s *appStorageType) GetRecord(workspace istructs.WSID, highConsistency bool, id istructs.RecordID, data *[]byte) (ok bool, err error) {
-	if err != nil {
-		return
-	}
 	*data = (*data)[0:0]
 	idHi, idLow := crackID(istructs.IDType(id))
 	err = s.session.Query(fmt.Sprintf("select data from %s.records where wsid=? and id_hi=? and id_low=?", s.keyspace()),

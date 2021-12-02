@@ -29,8 +29,7 @@ func TestBasicUsage(t *testing.T) {
 		Port:  port(9042),
 	}
 	appPar := AppCassandraParamsType{
-		Keyspace:          "testspace_0",
-		ReplicationFactor: 1,
+		Keyspace: "testspace_0",
 	}
 	storage, err := Provide(casPar, map[istructs.AppName]AppCassandraParamsType{"testApp": appPar}).AppStorage("testApp")
 	if err != nil {
@@ -43,7 +42,7 @@ func TestBasicUsage(t *testing.T) {
 }
 
 func TestMultiplyApps(t *testing.T) {
-	const appCount = 5
+	const appCount = 3
 
 	setUp(appCount)  // setup test sandbox
 	defer tearDown() // clear test sandbox
@@ -57,8 +56,7 @@ func TestMultiplyApps(t *testing.T) {
 	appPar := make(map[istructs.AppName]AppCassandraParamsType, appCount)
 	for appNo := 0; appNo < appCount; appNo++ {
 		appPar[istructs.AppName(fmt.Sprintf("app%d", appNo))] = AppCassandraParamsType{
-			Keyspace:          fmt.Sprintf("testspace_%d", appNo),
-			ReplicationFactor: 1,
+			Keyspace: fmt.Sprintf("testspace_%d", appNo),
 		}
 	}
 
@@ -253,8 +251,7 @@ func Test_newStorage(t *testing.T) {
 
 	t.Run("Should return error when keyspace is wrong", func(t *testing.T) {
 		appPar := AppCassandraParamsType{
-			Keyspace:          "wrong-keyspace",
-			ReplicationFactor: 1,
+			Keyspace: "wrong-keyspace",
 		}
 
 		require.Panics(t, func() {
