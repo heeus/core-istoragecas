@@ -18,15 +18,6 @@ import (
 	istructs "github.com/heeus/core-istructs"
 )
 
-func implAppStorageProvider(casPar CassandraParamsType, apps map[istructs.AppName]AppCassandraParamsType) istorage.IAppStorageProvider {
-	provider, err := newStorageProvider(casPar, apps)
-	if err != nil {
-		panic(err)
-	}
-
-	return provider
-}
-
 type appStorageProviderType struct {
 	casPar  CassandraParamsType
 	cluster *gocql.ClusterConfig
@@ -75,22 +66,7 @@ type appStorageType struct {
 
 func newStorage(cluster *gocql.ClusterConfig, appPar AppCassandraParamsType) (storage istorage.IAppStorage, err error) {
 
-	//Prepare keyspace
-	keySession, err := cluster.CreateSession()
-	if err != nil {
-		return nil, fmt.Errorf("can't create session: %w", err)
-	}
-	defer keySession.Close()
-
-	err = keySession.Query(fmt.Sprintf(`
-		create keyspace if not exists %s 
-		with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : %d }`, appPar.Keyspace, appPar.ReplicationFactor)).
-		Exec()
-	if err != nil {
-		return nil, fmt.Errorf("can't create keyspace «%s»: %w", appPar.Keyspace, err)
-	}
-
-	//Prepare tables
+	// prepare storage tables
 	tables := []struct{ name, cql string }{
 		{name: "records",
 			cql: `(

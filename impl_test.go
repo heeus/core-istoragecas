@@ -7,13 +7,11 @@ package istoragecas
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/gocql/gocql"
 	istorage "github.com/heeus/core-istorage"
@@ -23,17 +21,18 @@ import (
 )
 
 func TestBasicUsage(t *testing.T) {
-	defer tearDown()
-	rnd := rand.New(rand.NewSource(time.Now().UnixMilli()))
+	setUp(1)         // setup test sandbox
+	defer tearDown() // clear test sandbox
+
 	casPar := CassandraParamsType{
 		Hosts: hosts("127.0.0.1"),
 		Port:  port(9042),
 	}
 	appPar := AppCassandraParamsType{
-		Keyspace:          fmt.Sprintf("testspace_%d", rnd.Int63()),
+		Keyspace:          "testspace_0",
 		ReplicationFactor: 1,
 	}
-	storage, err := Provide()(casPar, map[istructs.AppName]AppCassandraParamsType{"testApp": appPar}).AppStorage("testApp")
+	storage, err := Provide(casPar, map[istructs.AppName]AppCassandraParamsType{"testApp": appPar}).AppStorage("testApp")
 	if err != nil {
 		panic(err)
 	}
@@ -44,9 +43,10 @@ func TestBasicUsage(t *testing.T) {
 }
 
 func TestMultiplyApps(t *testing.T) {
-	defer tearDown()
-
 	const appCount = 5
+
+	setUp(appCount)  // setup test sandbox
+	defer tearDown() // clear test sandbox
 
 	require := require.New(t)
 
@@ -64,7 +64,7 @@ func TestMultiplyApps(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 
-	provide := Provide()(casPar, appPar)
+	provide := Provide(casPar, appPar)
 
 	testApp := func(app istructs.AppName) {
 		defer wg.Done()
@@ -150,7 +150,9 @@ func testAppStorage_ViewRecords_Cassandra(t *testing.T, storage istorage.IAppSto
 	})
 }
 
-func tearDown() {
+func setUp(testKeyspacesCount int) {
+	// Prepare test keyspaces
+
 	cluster := gocql.NewCluster(strings.Split(hosts("127.0.0.1"), ",")...)
 	cluster.Port = port(9042)
 	cluster.Consistency = gocql.Quorum
@@ -160,6 +162,32 @@ func tearDown() {
 	if err != nil {
 		panic(err)
 	}
+	defer s.Close()
+
+	for ksNo := 0; ksNo < testKeyspacesCount; ksNo++ {
+		keyspace := fmt.Sprintf("testspace_%d", ksNo)
+		fmt.Printf("Creating %s…\n", keyspace)
+		err = s.Query(fmt.Sprintf(`
+			create keyspace if not exists %s
+			with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : %d }`, keyspace, 1)).Exec()
+		if err != nil {
+			panic(fmt.Errorf("can't create keyspace «%s»: %w", keyspace, err))
+		}
+	}
+}
+
+func tearDown() {
+	// drop test keyspaces
+	cluster := gocql.NewCluster(strings.Split(hosts("127.0.0.1"), ",")...)
+	cluster.Port = port(9042)
+	cluster.Consistency = gocql.Quorum
+	cluster.Timeout = ConnectionTimeout
+
+	s, err := cluster.CreateSession()
+	if err != nil {
+		panic(err)
+	}
+	defer s.Close()
 	keyspaceNames := make([]string, 0)
 	rows, err := s.Query("select * from system_schema.keyspaces").Iter().SliceMap()
 	if err != nil {
@@ -168,10 +196,10 @@ func tearDown() {
 	for _, row := range rows {
 		keyspaceNames = append(keyspaceNames, row["keyspace_name"].(string))
 	}
-	for _, keyspaceName := range keyspaceNames {
-		if strings.HasPrefix(keyspaceName, "testspace") {
-			fmt.Println("Droppping  ", keyspaceName, "...")
-			err = s.Query(fmt.Sprintf("drop keyspace if exists %s", keyspaceName)).Exec()
+	for _, keyspace := range keyspaceNames {
+		if strings.HasPrefix(keyspace, "testspace_") {
+			fmt.Printf("Droppping %s…\n", keyspace)
+			err = s.Query(fmt.Sprintf("drop keyspace if exists %s", keyspace)).Exec()
 			if err != nil {
 				panic(err)
 			}
@@ -201,7 +229,7 @@ func port(defaultValue int) int {
 
 func TestProvide(t *testing.T) {
 	require.Panics(t, func() {
-		Provide()(CassandraParamsType{}, map[istructs.AppName]AppCassandraParamsType{"": {}})
+		Provide(CassandraParamsType{}, map[istructs.AppName]AppCassandraParamsType{"": {}})
 	})
 }
 
@@ -230,7 +258,7 @@ func Test_newStorage(t *testing.T) {
 		}
 
 		require.Panics(t, func() {
-			_ = Provide()(casPar, map[istructs.AppName]AppCassandraParamsType{"testApp": appPar})
+			_ = Provide(casPar, map[istructs.AppName]AppCassandraParamsType{"testApp": appPar})
 		})
 	})
 }
