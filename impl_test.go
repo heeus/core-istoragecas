@@ -110,11 +110,11 @@ func testAppStorage_ViewRecords_Cassandra(t *testing.T, storage istorage.IAppSto
 
 	ctx := context.Background()
 
-	t.Run("Should read view records by partial clustering columns when partial clustering columns each byte is 0xff", func(t *testing.T) {
+	t.Run("Should read view records by partial clustering columns when partial clustering columns first two bytes is 0xff", func(t *testing.T) {
 		require := require.New(t)
-		viewRecords := make(map[string]bool)
-		reader := func(viewRecord []byte) (err error) {
-			viewRecords[string(viewRecord)] = true
+		viewRecords := make(map[string][]byte)
+		reader := func(clustCols, viewRecord []byte) (err error) {
+			viewRecords[string(viewRecord)] = append(clustCols[:0:0], clustCols...)
 			return err
 		}
 		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff, 0xfe}, []byte("Cola"))
@@ -125,14 +125,14 @@ func testAppStorage_ViewRecords_Cassandra(t *testing.T, storage istorage.IAppSto
 		require.NoError(storage.ReadView(ctx, istructs.NewQName("bo", "Article"), istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff}, reader))
 
 		require.Len(viewRecords, 2)
-		require.True(viewRecords["Cola"])
-		require.True(viewRecords["7up"])
+		require.Equal([]byte{0xff, 0xff, 0xfe}, viewRecords["Cola"])
+		require.Equal([]byte{0xff, 0xff, 0xff}, viewRecords["7up"])
 	})
-	t.Run("Should read view records by partial clustering columns when partial clustering columns last byte is 0xff", func(t *testing.T) {
+	t.Run("Should read view records by partial clustering columns when partial clustering columns first two bytes is 0x00 and 0xff", func(t *testing.T) {
 		require := require.New(t)
-		viewRecords := make(map[string]bool)
-		reader := func(viewRecord []byte) (err error) {
-			viewRecords[string(viewRecord)] = true
+		viewRecords := make(map[string][]byte)
+		reader := func(clustCols, viewRecord []byte) (err error) {
+			viewRecords[string(viewRecord)] = append(clustCols[:0:0], clustCols...)
 			return err
 		}
 		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xfe, 0xfe}, []byte("Cola"))
@@ -143,8 +143,8 @@ func testAppStorage_ViewRecords_Cassandra(t *testing.T, storage istorage.IAppSto
 		require.NoError(storage.ReadView(ctx, istructs.NewQName("bo", "Article"), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff}, reader))
 
 		require.Len(viewRecords, 2)
-		require.True(viewRecords["Sprite"])
-		require.True(viewRecords["Pepsi"])
+		require.Equal([]byte{0x00, 0xff, 0xfe}, viewRecords["Sprite"])
+		require.Equal([]byte{0x00, 0xff, 0xff}, viewRecords["Pepsi"])
 	})
 }
 
