@@ -224,8 +224,8 @@ type (
 	}
 )
 
-func newLogIterate(startOffset, finishOffset int64) logIterateType {
-	return logIterateType{startOffset, finishOffset}
+func logIterate(startOffset, finishOffset int64) *logIterateType {
+	return &logIterateType{startOffset, finishOffset}
 }
 
 func (iter *logIterateType) iterate(readPart logReadPartFuncType, iterator logIteratorFuncType) error {
