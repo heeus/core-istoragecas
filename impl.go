@@ -192,44 +192,6 @@ func (s *appStorageType) PutPLogEvent(partition istructs.PartitionID, offset ist
 	}
 }
 
-type (
-	logReadPartFuncType func(part int64, clustFrom, clustTo int16) error
-	logIteratorFuncType func(part int64, clust int16) error
-	logIterateType      struct {
-		startOffset, finishOffset int64
-	}
-)
-
-func logIterate(startOffset, finishOffset int64) *logIterateType {
-	return &logIterateType{startOffset, finishOffset}
-}
-
-func (iter *logIterateType) iterate(readPart logReadPartFuncType, iterator logIteratorFuncType) error {
-	minPart, minClust := crackOffset(iter.startOffset)
-	maxPart, maxClust := crackOffset(iter.finishOffset)
-
-	for part := minPart; part <= maxPart; part++ {
-		clustFrom := int16(0)
-		if part == minPart {
-			clustFrom = minClust
-		}
-		clustTo := int16(LowMask)
-		if part == maxPart {
-			clustTo = maxClust
-		}
-		if err := readPart(part, clustFrom, clustTo); err != nil {
-			return err
-		}
-		for clust := clustFrom; clust <= clustTo; clust++ {
-			if err := iterator(part, clust); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
 func (s *appStorageType) ReadPLog(ctx context.Context, partition istructs.PartitionID, offset istructs.Offset, toReadCount int, cb istorage.LogReaderCallback) (err error) {
 	for i := 0; i < toReadCount; i++ {
 		if ctx.Err() != nil {
