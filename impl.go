@@ -246,8 +246,7 @@ func (s *appStorageType) ReadWLog(ctx context.Context, workspace istructs.WSID, 
 func (s *appStorageType) PutViewRecord(view istructs.QName, workspace istructs.WSID, pKey []byte, cCols []byte, value []byte) (err error) {
 	qid, err := s.GetQNameID(view)
 	if err != nil {
-		//TODO panic???
-		panic(err)
+		return err
 	}
 	return s.session.Query(fmt.Sprintf("insert into %s.view_records (wsid, qname, p_key, c_col, value) values (?,?,?,?,?)", s.keyspace()),
 		int64(workspace),
