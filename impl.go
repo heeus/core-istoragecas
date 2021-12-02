@@ -18,15 +18,6 @@ import (
 	istructs "github.com/heeus/core-istructs"
 )
 
-func implAppStorageProvider(casPar CassandraParamsType, apps map[istructs.AppName]AppCassandraParamsType) istorage.IAppStorageProvider {
-	provider, err := newStorageProvider(casPar, apps)
-	if err != nil {
-		panic(err)
-	}
-
-	return provider
-}
-
 type appStorageProviderType struct {
 	casPar  CassandraParamsType
 	cluster *gocql.ClusterConfig
