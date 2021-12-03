@@ -6,7 +6,6 @@
 package istoragecas
 
 import (
-	"fmt"
 	"io"
 	"testing"
 
@@ -17,98 +16,108 @@ import (
 func Test_logIterateType_iterate(t *testing.T) {
 	const logSize = int64(16 * 1000)
 	type (
-		readPartRangeType struct{ min, max uint16 }
-		readResultType    map[int64]readPartRangeType
-		resultType        struct {
-			parts []string
-			reads int64
-			read  readResultType
-			err   error
+		readRangeType  struct{ min, max istructs.Offset }
+		readResultType []readRangeType
+		resultType     struct {
+			readed     readResultType
+			totalReads int64
+			err        error
 		}
 	)
 	tests := []struct {
-		name   string
-		iter   *logIterateType
-		result resultType
+		name        string
+		startOffset istructs.Offset
+		toReadCount int
+		result      resultType
 	}{
 		{
-			name: "0, 8: read 8 first recs from first partition",
-			iter: logIterate(0, 8),
+			name:        "0, 8: read 8 first recs from first partition",
+			startOffset: 0,
+			toReadCount: 8,
 			result: resultType{
-				parts: []string{"0: 0…7"},
-				reads: 8,
-				read:  readResultType{0: {0, 7}},
-				err:   nil,
+				readed:     readResultType{{0, 7}},
+				totalReads: 8,
+				err:        nil,
 			},
 		},
 		{
-			name: "0, 4096: read all first partition",
-			iter: logIterate(0, 4096),
+			name:        "0, 4096: read all first partition",
+			startOffset: 0,
+			toReadCount: 4096,
 			result: resultType{
-				parts: []string{"0: 0…4095"},
-				reads: 4096,
-				read:  readResultType{0: {0, 4095}},
-				err:   nil,
+				readed:     readResultType{{0, 4095}},
+				totalReads: 4096,
+				err:        nil,
 			},
 		},
 		{
-			name: "4090, 6: read last 6 recs from first partition",
-			iter: logIterate(4090, 6),
+			name:        "4090, 6: read last 6 recs from first partition",
+			startOffset: 4090,
+			toReadCount: 6,
 			result: resultType{
-				parts: []string{"0: 4090…4095"},
-				reads: 6,
-				read:  readResultType{0: {4090, 4095}},
-				err:   nil,
+				readed:     readResultType{{4090, 4095}},
+				totalReads: 6,
+				err:        nil,
 			},
 		},
 		{
-			name: "4090, 10: read 10 recs from tail of first partition and head of second",
-			iter: logIterate(4090, 10),
+			name:        "4090, 10: read 10 recs from tail of first partition and head of second",
+			startOffset: 4090,
+			toReadCount: 10,
 			result: resultType{
-				parts: []string{"0: 4090…4095", "1: 0…3"},
-				reads: 10,
-				read:  readResultType{0: {4090, 4095}, 1: {0, 3}},
-				err:   nil,
+				readed:     readResultType{{4090, 4095}, {1*4096 + 0, 1*4096 + 3}},
+				totalReads: 10,
+				err:        nil,
 			},
 		},
 		{
-			name: "4000, 10000: read 10’000 recs from tail of first partition, across second and third, and from head of fourth",
-			iter: logIterate(4000, 10000),
+			name:        "4000, 10000: read 10’000 recs from tail of first partition, across second and third, and from head of fourth",
+			startOffset: 4000,
+			toReadCount: 10000,
 			result: resultType{
-				parts: []string{"0: 4000…4095", "1: 0…4095", "2: 0…4095", "3: 0…1711"},
-				reads: 10000,
-				read:  readResultType{0: {4000, 4095}, 1: {0, 4095}, 2: {0, 4095}, 3: {0, 1711}},
-				err:   nil,
+				readed:     readResultType{{4000, 4095}, {1*4096 + 0, 1*4096 + 4095}, {2*4096 + 0, 2*4096 + 4095}, {3*4096 + 0, 3*4096 + 1711}},
+				totalReads: 10000,
+				err:        nil,
 			},
 		},
 		{
-			name: "15000, ∞: read all recs from 15000 to end of log",
-			iter: logIterate(15000, istructs.ReadToTheEnd),
+			name:        "15999, ∞: read one last rec from log",
+			startOffset: 15999,
+			toReadCount: istructs.ReadToTheEnd,
 			result: resultType{
-				parts: []string{"3: 2712…4095"},
-				reads: 1000,
-				read:  readResultType{3: {2712, 3711}},
-				err:   io.EOF,
+				readed:     readResultType{{3*4096 + 3711, 3*4096 + 3711}},
+				totalReads: 1,
+				err:        io.EOF,
 			},
 		},
 		{
-			name: "100500, ∞: read all recs beyond the end of log",
-			iter: logIterate(100500, istructs.ReadToTheEnd),
+			name:        "15000, ∞: read all recs from 15000 to end of log",
+			startOffset: 15000,
+			toReadCount: istructs.ReadToTheEnd,
 			result: resultType{
-				parts: []string{},
-				reads: 0,
-				read:  readResultType{},
-				err:   io.EOF,
+				readed:     readResultType{{3*4096 + 2712, 3*4096 + 3711}},
+				totalReads: 1000,
+				err:        io.EOF,
 			},
 		},
 		{
-			name: "0, ∞: read all recs from log",
-			iter: logIterate(0, istructs.ReadToTheEnd),
+			name:        "100500, ∞: read all recs beyond the end of log",
+			startOffset: 100500,
+			toReadCount: istructs.ReadToTheEnd,
 			result: resultType{
-				parts: []string{"0: 0…4095", "1: 0…4095", "2: 0…4095", "3: 0…4095"},
-				reads: logSize,
-				read:  readResultType{0: {0, 4095}, 1: {0, 4095}, 2: {0, 4095}, 3: {0, 3711}},
-				err:   io.EOF,
+				readed:     readResultType{},
+				totalReads: 0,
+				err:        io.EOF,
+			},
+		},
+		{
+			name:        "0, ∞: read all recs from log",
+			startOffset: 0,
+			toReadCount: istructs.ReadToTheEnd,
+			result: resultType{
+				readed:     readResultType{{0, 4095}, {1*4096 + 0, 1*4096 + 4095}, {2*4096 + 0, 2*4096 + 4095}, {3*4096 + 0, 3*4096 + 3711}},
+				totalReads: logSize,
+				err:        io.EOF,
 			},
 		},
 	}
@@ -117,41 +126,40 @@ func Test_logIterateType_iterate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			require := require.New(t)
 
-			parts := make([]string, 0)
-			reads := int64(0)
-			read := make(readResultType)
+			readed := make(readResultType, 0)
+			totalReads := int64(0)
 
-			readPart := func(part int64, clustFrom, clustTo uint16) error {
+			readPart := func(part int64, clustFrom, clustTo int16) (bool, error) {
 				if part<<PartitionBits+int64(clustFrom) >= logSize {
-					return io.EOF
+					return false, io.EOF
 				}
-				parts = append(parts, fmt.Sprintf("%d: %d…%d", part, clustFrom, clustTo))
-				return nil
+
+				r := readRangeType{
+					min: uncrackOffset(part, clustFrom),
+					max: uncrackOffset(part, clustTo),
+				}
+				if int64(r.max) >= logSize {
+					r.max = istructs.Offset(logSize - 1)
+				}
+				readed = append(readed, r)
+
+				totalReads = totalReads + int64(r.max) - int64(r.min) + 1
+
+				if int64(r.max) >= logSize {
+					return false, io.EOF
+				}
+
+				return true, nil
 			}
 
-			iterator := func(part int64, clust uint16) error {
-				if part<<PartitionBits+int64(clust) >= logSize {
-					return io.EOF
-				}
-				reads++
-				if r, ok := read[part]; ok {
-					require.Equal(r.max+1, clust)
-					read[part] = readPartRangeType{r.min, clust}
-				} else {
-					read[part] = readPartRangeType{clust, clust}
-				}
-				return nil
-			}
+			err := readLogParts(tt.startOffset, tt.toReadCount, readPart)
 
-			err := tt.iter.iterate(readPart, iterator)
-
+			require.Equal(tt.result.totalReads, totalReads, "logIterateType.iterate() reads = %v, want %v", totalReads, tt.result.totalReads)
+			require.Equal(tt.result.readed, readed, "logIterateType.iterate() readed = %v, want %v", readed, tt.result.readed)
 			if err != tt.result.err {
 				t.Errorf("logIterateType.iterate() error = %v, want %v", err, tt.result.err)
 			}
 
-			require.Equal(tt.result.parts, parts, "logIterateType.iterate() parts = %v, want %v", tt.result.parts, parts)
-			require.Equal(tt.result.reads, reads, "logIterateType.iterate() reads = %v, want %v", tt.result.reads, reads)
-			require.Equal(tt.result.read, read, "logIterateType.iterate() reads = %v, want %v", tt.result.read, read)
 		})
 	}
 }
