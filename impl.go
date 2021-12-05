@@ -187,49 +187,28 @@ func (s *appStorageType) PutPLogEvent(partition istructs.PartitionID, offset ist
 
 func (s *appStorageType) ReadPLog(ctx context.Context, partition istructs.PartitionID, offset istructs.Offset, toReadCount int, cb istorage.LogReaderCallback) (err error) {
 
-	return readLogParts(offset, toReadCount,
-		func(part int64, clustFrom, clustTo int16) (ok bool, err error) {
-			var query *gocql.Query
-			var qParams []interface{}
-			qText := fmt.Sprintf("select offset_low, event from %s.plog where (partition_id = ?) and (offset_hi = ?)", s.keyspace())
-			qParams = append(qParams, partition, part)
+	readQuery := func(part int64, clustFrom, clustTo int16) (query *gocql.Query) {
+		var qParams []interface{}
+		qText := fmt.Sprintf("select offset_low, event from %s.plog where (partition_id = ?) and (offset_hi = ?)", s.keyspace())
+		qParams = append(qParams, partition, part)
 
-			if clustFrom > 0 {
-				qText = qText + " and (offset_low >= ?)"
-				qParams = append(qParams, clustFrom)
-			}
-			if clustTo < LowMask {
-				qText = qText + " and (offset_low <= ?)"
-				qParams = append(qParams, clustTo)
-			}
-			qText = qText + " order by offset_low" // key is (partition_id, offset_hi, offset_low)
+		if clustFrom > 0 {
+			qText = qText + " and (offset_low >= ?)"
+			qParams = append(qParams, clustFrom)
+		}
+		if clustTo < LowMask {
+			qText = qText + " and (offset_low <= ?)"
+			qParams = append(qParams, clustTo)
+		}
+		qText = qText + " order by offset_low" // key is (partition_id, offset_hi, offset_low)
 
-			query = s.session.Query(qText, qParams...)
-			query.SetConsistency(gocql.Quorum)
+		query = s.session.Query(qText, qParams...)
+		query.SetConsistency(gocql.Quorum)
 
-			iter := query.Iter()
+		return query
+	}
 
-			readed := 0
-			for clust, event := clustFrom, make([]byte, 0); iter.Scan(&clust, &event); readed++ {
-				if ctx.Err() != nil {
-					iter.Close()
-					return false, nil
-				}
-
-				e := make([]byte, len(event))
-				copy(e, event)
-				if err = cb(istructs.Offset(uncrackOffset(part, clust)), e); err != nil {
-					iter.Close()
-					return false, err
-				}
-			}
-
-			if err = iter.Close(); err != nil {
-				return false, err
-			}
-
-			return readed > 0, nil
-		})
+	return readLog(ctx, offset, toReadCount, readQuery, cb)
 }
 
 func (s *appStorageType) PutWLogEvent(workspace istructs.WSID, offset istructs.Offset, event []byte) (err error) {
@@ -243,27 +222,29 @@ func (s *appStorageType) PutWLogEvent(workspace istructs.WSID, offset istructs.O
 }
 
 func (s *appStorageType) ReadWLog(ctx context.Context, workspace istructs.WSID, offset istructs.Offset, toReadCount int, cb istorage.LogReaderCallback) (err error) {
-	for i := 0; i < toReadCount; i++ {
-		if ctx.Err() != nil {
-			return
+
+	readQuery := func(part int64, clustFrom, clustTo int16) (query *gocql.Query) {
+		var qParams []interface{}
+		qText := fmt.Sprintf("select offset_low, event from %s.wlog where (wsid = ?) and (offset_hi = ?)", s.keyspace())
+		qParams = append(qParams, workspace, part)
+
+		if clustFrom > 0 {
+			qText = qText + " and (offset_low >= ?)"
+			qParams = append(qParams, clustFrom)
 		}
-		event := make([]byte, 0)
-		plogOffset := offset + istructs.Offset(i)
-		offsetHi, offsetLow := crackID(istructs.IDType(plogOffset))
-		err = s.session.Query(fmt.Sprintf("select event from %s.wlog where wsid=? and offset_hi=? and offset_low=?", s.keyspace()),
-			int64(workspace),
-			offsetHi,
-			offsetLow).
-			Scan(&event)
-		if errors.Is(err, gocql.ErrNotFound) {
-			return nil
+		if clustTo < LowMask {
+			qText = qText + " and (offset_low <= ?)"
+			qParams = append(qParams, clustTo)
 		}
-		err = cb(plogOffset, event)
-		if err != nil {
-			return
-		}
+		qText = qText + " order by offset_low" // key is (wsid, offset_hi, offset_low)
+
+		query = s.session.Query(qText, qParams...)
+		query.SetConsistency(gocql.Quorum)
+
+		return query
 	}
-	return
+
+	return readLog(ctx, offset, toReadCount, readQuery, cb)
 }
 
 func (s *appStorageType) PutViewRecord(view istructs.QName, workspace istructs.WSID, pKey []byte, cCols []byte, value []byte) (err error) {
