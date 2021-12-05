@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_logIterateType_iterate(t *testing.T) {
+func Test_readLogParts(t *testing.T) {
 	const logSize = int64(16 * 1000)
 	type (
 		readRangeType  struct{ min, max istructs.Offset }
