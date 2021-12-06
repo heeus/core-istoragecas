@@ -187,18 +187,18 @@ func (s *appStorageType) PutPLogEvent(partition istructs.PartitionID, offset ist
 
 func (s *appStorageType) ReadPLog(ctx context.Context, partition istructs.PartitionID, offset istructs.Offset, toReadCount int, cb istorage.LogReaderCallback) (err error) {
 
-	readQuery := func(part int64, clustFrom, clustTo int16) (query *gocql.Query) {
+	readQuery := func(part int64, offset_low_from, offset_low_to int16) (query *gocql.Query) {
 		var qParams []interface{}
 		qText := fmt.Sprintf("select offset_low, event from %s.plog where (partition_id = ?) and (offset_hi = ?)", s.keyspace())
 		qParams = append(qParams, partition, part)
 
-		if clustFrom > 0 {
+		if offset_low_from > 0 {
 			qText = qText + " and (offset_low >= ?)"
-			qParams = append(qParams, clustFrom)
+			qParams = append(qParams, offset_low_from)
 		}
-		if clustTo < LowMask {
+		if offset_low_to < LowMask {
 			qText = qText + " and (offset_low <= ?)"
-			qParams = append(qParams, clustTo)
+			qParams = append(qParams, offset_low_to)
 		}
 		qText = qText + " order by offset_low" // key is (partition_id, offset_hi, offset_low)
 

@@ -54,28 +54,29 @@ type logReadPartQueryFuncType func(part int64, clustFrom, clustTo int16) (query 
 
 // readLog: reads (i.e. calls the cb function) from event log toReadCount records at offset using the specified readQuery constructor
 func readLog(ctx context.Context, offset istructs.Offset, toReadCount int, readQuery logReadPartQueryFuncType, cb istorage.LogReaderCallback) (err error) {
-	return readLogParts(offset, toReadCount,
-		func(part int64, clustFrom, clustTo int16) (ok bool, err error) {
-			iter := readQuery(part, clustFrom, clustTo).Iter()
+	readPart := func(part int64, clustFrom, clustTo int16) (ok bool, err error) {
+		iter := readQuery(part, clustFrom, clustTo).Iter()
 
-			readed := 0
-			for clust, event := clustFrom, make([]byte, 0); iter.Scan(&clust, &event); readed++ {
-				if ctx.Err() != nil {
-					iter.Close()
-					return false, nil // breaked from context
-				}
-				e := make([]byte, len(event))
-				copy(e, event)
-				if err = cb(istructs.Offset(uncrackOffset(part, clust)), e); err != nil {
-					iter.Close()
-					return false, err // breaked from callback
-				}
+		readed := 0
+		for clust, event := clustFrom, make([]byte, 0); iter.Scan(&clust, &event); readed++ {
+			if ctx.Err() != nil {
+				iter.Close()
+				return false, nil // breaked from context
 			}
-
-			if err = iter.Close(); err != nil {
-				return false, err // breaked by query error. Panic?
+			e := make([]byte, len(event))
+			copy(e, event)
+			if err = cb(istructs.Offset(uncrackOffset(part, clust)), e); err != nil {
+				iter.Close()
+				return false, err // breaked from callback
 			}
+		}
 
-			return readed > 0, nil // false if nothing to read
-		})
+		if err = iter.Close(); err != nil {
+			return false, err // breaked by query error. Panic?
+		}
+
+		return readed > 0, nil // false if nothing to read
+	}
+
+	return readLogParts(offset, toReadCount, readPart)
 }
