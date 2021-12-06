@@ -149,6 +149,9 @@ func testAppStorage_ViewRecords_Cassandra(t *testing.T, storage istorage.IAppSto
 }
 
 func setUp(testKeyspacesCount int) {
+
+	tearDown()
+
 	// Prepare test keyspaces
 
 	cluster := gocql.NewCluster(strings.Split(hosts("127.0.0.1"), ",")...)
