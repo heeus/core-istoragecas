@@ -263,6 +263,6 @@ func Test_newStorage(t *testing.T) {
 func Test_getConsistency(t *testing.T) {
 	require := require.New(t)
 
-	require.Equal(gocql.LocalQuorum, getConsistency(true))
+	require.Equal(gocql.Quorum, getConsistency(true))
 	require.Equal(gocql.LocalOne, getConsistency(false))
 }

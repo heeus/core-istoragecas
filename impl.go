@@ -379,7 +379,7 @@ func crackID(id istructs.IDType) (hi int64, low int16) {
 
 func getConsistency(highConsistency bool) gocql.Consistency {
 	if highConsistency {
-		return gocql.LocalQuorum
+		return gocql.Quorum
 	}
 	return gocql.LocalOne
 }
