@@ -14,11 +14,17 @@ github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed h1:5upAirOpQc
 github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed/go.mod h1:tMWxXQ9wFIaZeTI9F+hmhFiGpFmhOHzyShyFUhRm0H4=
 github.com/heeus/core-istorage v0.0.0-20211202131752-48aa1f3ef592 h1:VQ+970AeZjWofYLgSvrHp5niY1nSKy/0cjQLD4u9/6U=
 github.com/heeus/core-istorage v0.0.0-20211202131752-48aa1f3ef592/go.mod h1:wFEKcfaHwJnJk0MyIysZGZq0/wjpw0CaSPPiKOeapBc=
+github.com/heeus/core-istorage v0.0.0-20211228095143-85b2f9def4ae h1:Ngli28R0M8eoghpEMHDFXWsWOL9bSze+BhwfIsCk9As=
+github.com/heeus/core-istorage v0.0.0-20211228095143-85b2f9def4ae/go.mod h1:sZcy9U2+pJtuv+VnqGSqLqlno34Wob8ZZHZmmNitj9Y=
 github.com/heeus/core-istoragemem v0.0.0-20211202131916-6b47d19ce540 h1:QcI2DWXdzgcytmYJpXMa31c9HOgpsYXBCBlBM1ssVC8=
 github.com/heeus/core-istoragemem v0.0.0-20211202131916-6b47d19ce540/go.mod h1:wr7WTjNbo/sZsKRL8QnwvQCSY388bddvj5oZCxT84tw=
+github.com/heeus/core-istoragemem v0.0.0-20211228102128-f7dd1a4f67b1 h1:oS1ELX3aOEyyRtNxNte4wZbagXCqNXA/jewxlxyePWQ=
+github.com/heeus/core-istoragemem v0.0.0-20211228102128-f7dd1a4f67b1/go.mod h1:xGfiYCA4lqADlDMIsyVaBFiHszU3wCKBv5MbenfoA2M=
 github.com/heeus/core-istructs v0.0.0-20211108121715-8682d37c83cd/go.mod h1:oBnZjfHZceR9BDMvXntoryLsgsQuhiKEB11lKHAoiVI=
 github.com/heeus/core-istructs v0.0.0-20211202105752-2ce6237bb8ef h1:jrv/gFAq3vqs8APqQroxvg6SrycfC2TxFwhs9G6NCDw=
 github.com/heeus/core-istructs v0.0.0-20211202105752-2ce6237bb8ef/go.mod h1:oBnZjfHZceR9BDMvXntoryLsgsQuhiKEB11lKHAoiVI=
+github.com/heeus/core-istructs v0.0.0-20211228091524-8f81ba1f69e4 h1:WO/qIm49QMJwP285rBk54aEYjP/30OmMTZ3n5OlMmJ8=
+github.com/heeus/core-istructs v0.0.0-20211228091524-8f81ba1f69e4/go.mod h1:oBnZjfHZceR9BDMvXntoryLsgsQuhiKEB11lKHAoiVI=
 github.com/heeus/core-pipeline v0.0.0-20211020124904-df3caaaecd30/go.mod h1:285jU5GHo8YFDPd60Q6y+Ls4hCqyg3tDKBqLHxUHdrU=
 github.com/heeus/core-pipeline v0.0.0-20211126105548-f662a3cdcda7 h1:vK2btorhJ4r8ZvUW4wunRm12OObepjO0AIGpqLU7+9c=
 github.com/heeus/core-pipeline v0.0.0-20211126105548-f662a3cdcda7/go.mod h1:285jU5GHo8YFDPd60Q6y+Ls4hCqyg3tDKBqLHxUHdrU=

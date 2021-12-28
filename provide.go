@@ -10,7 +10,7 @@ import (
 )
 
 // Provide s.e.
-func Provide(casPar CassandraParamsType, apps map[istructs.AppName]AppCassandraParamsType) istorage.IAppStorageProvider {
+func Provide(casPar CassandraParamsType, apps map[istructs.AppQName]AppCassandraParamsType) istorage.IAppStorageProvider {
 	provider, err := newStorageProvider(casPar, apps)
 	if err != nil {
 		panic(err)

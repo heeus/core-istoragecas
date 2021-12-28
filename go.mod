@@ -4,9 +4,9 @@ go 1.17
 
 require (
 	github.com/gocql/gocql v0.0.0-20211015133455-b225f9b53fa1
-	github.com/heeus/core-istorage v0.0.0-20211202131752-48aa1f3ef592
-	github.com/heeus/core-istoragemem v0.0.0-20211202131916-6b47d19ce540
-	github.com/heeus/core-istructs v0.0.0-20211202105752-2ce6237bb8ef
+	github.com/heeus/core-istorage v0.0.0-20211228095143-85b2f9def4ae
+	github.com/heeus/core-istoragemem v0.0.0-20211228102128-f7dd1a4f67b1
+	github.com/heeus/core-istructs v0.0.0-20211228091524-8f81ba1f69e4
 	github.com/stretchr/testify v1.7.0
 )
 
