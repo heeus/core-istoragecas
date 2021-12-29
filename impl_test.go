@@ -31,7 +31,7 @@ func TestBasicUsage(t *testing.T) {
 	appPar := AppCassandraParamsType{
 		Keyspace: "testspace_0",
 	}
-	storage, err := Provide(casPar, map[istructs.AppQName]AppCassandraParamsType{istructs.AppQName_test1_app1: appPar}).AppStorage(istructs.AppQName_test1_app1)
+	storage, err := Provide(casPar, map[istructs.AppName]AppCassandraParamsType{"testApp": appPar}).AppStorage("testApp")
 	if err != nil {
 		panic(err)
 	}
@@ -53,11 +53,9 @@ func TestMultiplyApps(t *testing.T) {
 		Hosts: hosts("127.0.0.1"),
 		Port:  port(9042),
 	}
-	appPar := make(map[istructs.AppQName]AppCassandraParamsType, appCount)
+	appPar := make(map[istructs.AppName]AppCassandraParamsType, appCount)
 	for appNo := 0; appNo < appCount; appNo++ {
-		appQName, err := istructs.ParseAppQName(fmt.Sprintf("untill/app%d", appNo))
-		require.Nil(err, err)
-		appPar[appQName] = AppCassandraParamsType{
+		appPar[istructs.AppName(fmt.Sprintf("app%d", appNo))] = AppCassandraParamsType{
 			Keyspace: fmt.Sprintf("testspace_%d", appNo),
 		}
 	}
@@ -66,7 +64,7 @@ func TestMultiplyApps(t *testing.T) {
 
 	provide := Provide(casPar, appPar)
 
-	testApp := func(app istructs.AppQName) {
+	testApp := func(app istructs.AppName) {
 		defer wg.Done()
 		storage, err := provide.AppStorage(app)
 		require.Nil(err)
@@ -232,17 +230,17 @@ func port(defaultValue int) int {
 
 func TestProvide(t *testing.T) {
 	require.Panics(t, func() {
-		Provide(CassandraParamsType{}, map[istructs.AppQName]AppCassandraParamsType{istructs.AppQName_null: {}})
+		Provide(CassandraParamsType{}, map[istructs.AppName]AppCassandraParamsType{"": {}})
 	})
 }
 
 func TestAppStorageProvider_AppStorage(t *testing.T) {
 	require := require.New(t)
 	p := appStorageProviderType{
-		cache: map[istructs.AppQName]istorage.IAppStorage{},
+		cache: map[istructs.AppName]istorage.IAppStorage{},
 	}
 
-	storage, err := p.AppStorage(istructs.AppQName_test1_app1)
+	storage, err := p.AppStorage("testApp")
 
 	require.Nil(storage)
 	require.ErrorIs(err, istructs.ErrAppNotFound)
@@ -260,7 +258,7 @@ func Test_newStorage(t *testing.T) {
 		}
 
 		require.Panics(t, func() {
-			_ = Provide(casPar, map[istructs.AppQName]AppCassandraParamsType{istructs.AppQName_test1_app1: appPar})
+			_ = Provide(casPar, map[istructs.AppName]AppCassandraParamsType{"testApp": appPar})
 		})
 	})
 }

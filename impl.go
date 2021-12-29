@@ -21,13 +21,13 @@ import (
 type appStorageProviderType struct {
 	casPar  CassandraParamsType
 	cluster *gocql.ClusterConfig
-	cache   map[istructs.AppQName]istorage.IAppStorage
+	cache   map[istructs.AppName]istorage.IAppStorage
 }
 
-func newStorageProvider(casPar CassandraParamsType, apps map[istructs.AppQName]AppCassandraParamsType) (prov *appStorageProviderType, err error) {
+func newStorageProvider(casPar CassandraParamsType, apps map[istructs.AppName]AppCassandraParamsType) (prov *appStorageProviderType, err error) {
 	provider := appStorageProviderType{
 		casPar: casPar,
-		cache:  make(map[istructs.AppQName]istorage.IAppStorage),
+		cache:  make(map[istructs.AppName]istorage.IAppStorage),
 	}
 
 	provider.cluster = gocql.NewCluster(strings.Split(casPar.Hosts, ",")...)
@@ -49,7 +49,7 @@ func newStorageProvider(casPar CassandraParamsType, apps map[istructs.AppQName]A
 	return &provider, nil
 }
 
-func (p appStorageProviderType) AppStorage(appName istructs.AppQName) (storage istorage.IAppStorage, err error) {
+func (p appStorageProviderType) AppStorage(appName istructs.AppName) (storage istorage.IAppStorage, err error) {
 	storage, ok := p.cache[appName]
 	if !ok {
 		return nil, istructs.ErrAppNotFound

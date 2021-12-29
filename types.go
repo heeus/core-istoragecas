@@ -10,7 +10,7 @@ import (
 )
 
 // AppStorageProviderFuncType s.e.
-type AppStorageProviderFuncType func(casPar CassandraParamsType, apps map[istructs.AppQName]AppCassandraParamsType) istorage.IAppStorageProvider
+type AppStorageProviderFuncType func(casPar CassandraParamsType, apps map[istructs.AppName]AppCassandraParamsType) istorage.IAppStorageProvider
 
 type CassandraParamsType struct {
 	// Comma separated list of hosts
