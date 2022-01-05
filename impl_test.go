@@ -31,7 +31,9 @@ func TestBasicUsage(t *testing.T) {
 	appPar := AppCassandraParamsType{
 		Keyspace: "testspace_0",
 	}
-	storage, err := Provide(casPar, map[istructs.AppQName]AppCassandraParamsType{istructs.AppQName_test1_app1: appPar}).AppStorage(istructs.AppQName_test1_app1)
+	asp, cleanup := Provide(casPar, map[istructs.AppQName]AppCassandraParamsType{istructs.AppQName_test1_app1: appPar})
+	defer cleanup()
+	storage, err := asp.AppStorage(istructs.AppQName_test1_app1)
 	if err != nil {
 		panic(err)
 	}
@@ -63,7 +65,8 @@ func TestMultiplyApps(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 
-	provide := Provide(casPar, appPar)
+	provide, cleanup := Provide(casPar, appPar)
+	defer cleanup()
 
 	testApp := func(app istructs.AppQName) {
 		defer wg.Done()
@@ -259,7 +262,7 @@ func Test_newStorage(t *testing.T) {
 		}
 
 		require.Panics(t, func() {
-			_ = Provide(casPar, map[istructs.AppQName]AppCassandraParamsType{istructs.AppQName_test1_app1: appPar})
+			_, _ = Provide(casPar, map[istructs.AppQName]AppCassandraParamsType{istructs.AppQName_test1_app1: appPar})
 		})
 	})
 }

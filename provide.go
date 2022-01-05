@@ -10,11 +10,11 @@ import (
 )
 
 // Provide s.e.
-func Provide(casPar CassandraParamsType, apps map[istructs.AppQName]AppCassandraParamsType) istorage.IAppStorageProvider {
+func Provide(casPar CassandraParamsType, apps map[istructs.AppQName]AppCassandraParamsType) (asp istorage.IAppStorageProvider, cleanup func()) {
 	provider, err := newStorageProvider(casPar, apps)
 	if err != nil {
 		panic(err)
 	}
 
-	return provider
+	return provider, provider.release
 }

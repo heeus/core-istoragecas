@@ -57,6 +57,13 @@ func (p appStorageProviderType) AppStorage(appName istructs.AppQName) (storage i
 	return storage, nil
 }
 
+func (p appStorageProviderType) release() {
+	for _, iStorage := range p.cache {
+		storage := iStorage.(*appStorageType)
+		storage.session.Close()
+	}
+}
+
 type appStorageType struct {
 	cluster *gocql.ClusterConfig
 	appPar  AppCassandraParamsType
@@ -120,7 +127,7 @@ func newStorage(cluster *gocql.ClusterConfig, appPar AppCassandraParamsType) (st
 				fmt.Sprintf(`create table if not exists %s.%s %s`, appPar.Keyspace, table.name, table.cql)).Exec()
 		})
 		if err != nil {
-			return nil, fmt.Errorf("can't create table «%s»: %w", table.name, err)
+			return nil, fmt.Errorf("can't create table «%s»: %w", table.name, err)
 		}
 	}
 
