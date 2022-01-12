@@ -113,43 +113,65 @@ func testAppStorage_GetQNameID_Cassandra(t *testing.T, storage istorage.IAppStor
 func testAppStorage_ViewRecords_Cassandra(t *testing.T, storage istorage.IAppStorage) {
 
 	ctx := context.Background()
+	require := require.New(t)
+
+	viewName := istructs.NewQName("bo", "Article")
 
 	t.Run("Should read view records by partial clustering columns when partial clustering columns first two bytes is 0xff", func(t *testing.T) {
-		require := require.New(t)
 		viewRecords := make(map[string][]byte)
 		reader := func(clustCols, viewRecord []byte) (err error) {
 			viewRecords[string(viewRecord)] = append(clustCols[:0:0], clustCols...)
 			return err
 		}
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff, 0xfe}, []byte("Cola"))
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff, 0xff}, []byte("7up"))
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xfe, 0xff}, []byte("Sprite"))
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(200), []byte{0xff}, []byte{0xfe, 0xff, 0xff}, []byte("Pepsi"))
+		storage.PutViewRecord(viewName, istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff, 0xfe}, []byte("Cola"))
+		storage.PutViewRecord(viewName, istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff, 0xff}, []byte("7up"))
+		storage.PutViewRecord(viewName, istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xfe, 0xff}, []byte("Sprite"))
+		storage.PutViewRecord(viewName, istructs.WSID(200), []byte{0xff}, []byte{0xfe, 0xff, 0xff}, []byte("Pepsi"))
 
-		require.NoError(storage.ReadView(ctx, istructs.NewQName("bo", "Article"), istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff}, reader))
+		require.NoError(storage.ReadView(ctx, viewName, istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff}, reader))
 
 		require.Len(viewRecords, 2)
 		require.Equal([]byte{0xff, 0xff, 0xfe}, viewRecords["Cola"])
 		require.Equal([]byte{0xff, 0xff, 0xff}, viewRecords["7up"])
 	})
 	t.Run("Should read view records by partial clustering columns when partial clustering columns first two bytes is 0x00 and 0xff", func(t *testing.T) {
-		require := require.New(t)
 		viewRecords := make(map[string][]byte)
 		reader := func(clustCols, viewRecord []byte) (err error) {
 			viewRecords[string(viewRecord)] = append(clustCols[:0:0], clustCols...)
 			return err
 		}
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xfe, 0xfe}, []byte("Cola"))
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xfe, 0xff}, []byte("7up"))
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff, 0xfe}, []byte("Sprite"))
-		storage.PutViewRecord(istructs.NewQName("bo", "Article"), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff, 0xff}, []byte("Pepsi"))
+		storage.PutViewRecord(viewName, istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xfe, 0xfe}, []byte("Cola"))
+		storage.PutViewRecord(viewName, istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xfe, 0xff}, []byte("7up"))
+		storage.PutViewRecord(viewName, istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff, 0xfe}, []byte("Sprite"))
+		storage.PutViewRecord(viewName, istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff, 0xff}, []byte("Pepsi"))
 
-		require.NoError(storage.ReadView(ctx, istructs.NewQName("bo", "Article"), istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff}, reader))
+		require.NoError(storage.ReadView(ctx, viewName, istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff}, reader))
 
 		require.Len(viewRecords, 2)
 		require.Equal([]byte{0x00, 0xff, 0xfe}, viewRecords["Sprite"])
 		require.Equal([]byte{0x00, 0xff, 0xff}, viewRecords["Pepsi"])
 	})
+
+	// t.Run("Should be able to pass nil clustering columns to GetViewRecord / PutViewRecord", func(t *testing.T) {
+	// 	viewRecords := make(map[string][]byte)
+	// 	reader := func(clustCols, viewRecord []byte) (err error) {
+	// 		viewRecords[string(viewRecord)] = append(clustCols[:0:0], clustCols...)
+	// 		return err
+	// 	}
+
+	// 	storage.PutViewRecord(viewName, istructs.WSID(202), []byte{0xaa}, nil, []byte("Cola"))
+
+	// 	require.NoError(storage.ReadView(ctx, viewName, istructs.WSID(202), []byte{0xaa}, nil, reader))
+
+	// 	require.Len(viewRecords, 1)
+	// 	require.Equal(0, len(viewRecords["Cola"]))
+
+	// 	var data []byte
+	// 	ok, err := storage.GetViewRecord(viewName, istructs.WSID(202), []byte{0xaa}, nil, &data)
+	// 	require.True(ok)
+	// 	require.NoError(err, err)
+	// 	require.Equal([]byte("Cola"), data)
+	// })
 }
 
 func setUp(testKeyspacesCount int) {
@@ -174,7 +196,7 @@ func setUp(testKeyspacesCount int) {
 		fmt.Printf("Creating %s…\n", keyspace)
 		err = s.Query(fmt.Sprintf(`
 			create keyspace if not exists %s
-			with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : %d }`, keyspace, 1)).Exec()
+			with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : %d }`, keyspace, 1)).Consistency(gocql.Quorum).Exec()
 		if err != nil {
 			panic(fmt.Errorf("can't create keyspace «%s»: %w", keyspace, err))
 		}
@@ -194,7 +216,7 @@ func tearDown() {
 	}
 	defer s.Close()
 	keyspaceNames := make([]string, 0)
-	rows, err := s.Query("select * from system_schema.keyspaces").Iter().SliceMap()
+	rows, err := s.Query("select * from system_schema.keyspaces").Consistency(gocql.Quorum).Iter().SliceMap()
 	if err != nil {
 		panic(err)
 	}
@@ -203,8 +225,8 @@ func tearDown() {
 	}
 	for _, keyspace := range keyspaceNames {
 		if strings.HasPrefix(keyspace, "testspace_") {
-			fmt.Printf("Droppping %s…\n", keyspace)
-			err = s.Query(fmt.Sprintf("drop keyspace if exists %s", keyspace)).Exec()
+			fmt.Printf("Dropping %s…\n", keyspace)
+			err = s.Query(fmt.Sprintf("drop keyspace if exists %s", keyspace)).Consistency(gocql.Quorum).Exec()
 			if err != nil {
 				panic(err)
 			}
@@ -265,11 +287,4 @@ func Test_newStorage(t *testing.T) {
 			_, _ = Provide(casPar, map[istructs.AppQName]AppCassandraParamsType{istructs.AppQName_test1_app1: appPar})
 		})
 	})
-}
-
-func Test_getConsistency(t *testing.T) {
-	require := require.New(t)
-
-	require.Equal(gocql.Quorum, getConsistency(true))
-	require.Equal(gocql.LocalOne, getConsistency(false))
 }

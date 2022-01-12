@@ -34,7 +34,7 @@ func newStorageProvider(casPar CassandraParamsType, apps map[istructs.AppQName]A
 	if casPar.Port > 0 {
 		provider.cluster.Port = casPar.Port
 	}
-	provider.cluster.Consistency = getConsistency(true)
+	provider.cluster.Consistency = gocql.Quorum
 	provider.cluster.Timeout = ConnectionTimeout
 	provider.cluster.Authenticator = gocql.PasswordAuthenticator{Username: casPar.Username, Password: casPar.Pwd}
 
@@ -124,7 +124,7 @@ func newStorage(cluster *gocql.ClusterConfig, appPar AppCassandraParamsType) (st
 	for _, table := range tables {
 		err = doWithAttempts(Attempts, time.Second, func() error {
 			return session.Query(
-				fmt.Sprintf(`create table if not exists %s.%s %s`, appPar.Keyspace, table.name, table.cql)).Exec()
+				fmt.Sprintf(`create table if not exists %s.%s %s`, appPar.Keyspace, table.name, table.cql)).Consistency(gocql.Quorum).Exec()
 		})
 		if err != nil {
 			return nil, fmt.Errorf("can't create table «%s»: %w", table.name, err)
@@ -153,14 +153,14 @@ func (s *appStorageType) keyspace() string {
 	return s.appPar.Keyspace
 }
 
-func (s *appStorageType) GetRecord(workspace istructs.WSID, highConsistency bool, id istructs.RecordID, data *[]byte) (ok bool, err error) {
+func (s *appStorageType) GetRecord(workspace istructs.WSID, _ bool, id istructs.RecordID, data *[]byte) (ok bool, err error) {
 	*data = (*data)[0:0]
 	idHi, idLow := crackID(istructs.IDType(id))
 	err = s.session.Query(fmt.Sprintf("select data from %s.records where wsid=? and id_hi=? and id_low=?", s.keyspace()),
 		int64(workspace),
 		idHi,
 		idLow).
-		Consistency(getConsistency(highConsistency)).
+		Consistency(gocql.Quorum).
 		Scan(data)
 	if errors.Is(err, gocql.ErrNotFound) {
 		return false, nil
@@ -171,14 +171,14 @@ func (s *appStorageType) GetRecord(workspace istructs.WSID, highConsistency bool
 	return true, nil
 }
 
-func (s *appStorageType) PutRecord(workspace istructs.WSID, highConsistency bool, id istructs.RecordID, data []byte) (err error) {
+func (s *appStorageType) PutRecord(workspace istructs.WSID, _ bool, id istructs.RecordID, data []byte) (err error) {
 	idHi, idLow := crackID(istructs.IDType(id))
 	return s.session.Query(fmt.Sprintf("insert into %s.records (wsid, id_hi, id_low, data) values (?,?,?,?)", s.keyspace()),
 		int64(workspace),
 		idHi,
 		idLow,
 		data).
-		Consistency(getConsistency(highConsistency)).
+		Consistency(gocql.Quorum).
 		Exec()
 }
 
@@ -189,6 +189,7 @@ func (s *appStorageType) PutPLogEvent(partition istructs.PartitionID, offset ist
 		offsetHi,
 		offsetLow,
 		event).
+		Consistency(gocql.Quorum).
 		Exec()
 }
 
@@ -209,8 +210,7 @@ func (s *appStorageType) ReadPLog(ctx context.Context, partition istructs.Partit
 		}
 		qText = qText + " order by offset_low" // key is (partition_id, offset_hi, offset_low)
 
-		query = s.session.Query(qText, qParams...)
-		query.SetConsistency(gocql.Quorum)
+		query = s.session.Query(qText, qParams...).Consistency(gocql.Quorum)
 
 		return query
 	}
@@ -225,6 +225,7 @@ func (s *appStorageType) PutWLogEvent(workspace istructs.WSID, offset istructs.O
 		offsetHi,
 		offsetLow,
 		event).
+		Consistency(gocql.Quorum).
 		Exec()
 }
 
@@ -245,13 +246,19 @@ func (s *appStorageType) ReadWLog(ctx context.Context, workspace istructs.WSID, 
 		}
 		qText = qText + " order by offset_low" // key is (wsid, offset_hi, offset_low)
 
-		query = s.session.Query(qText, qParams...)
-		query.SetConsistency(gocql.Quorum)
+		query = s.session.Query(qText, qParams...).Consistency(gocql.Quorum)
 
 		return query
 	}
 
 	return readLog(ctx, offset, toReadCount, readQuery, cb)
+}
+
+func safeCcols(value []byte) []byte {
+	if value == nil {
+		return []byte{}
+	}
+	return value
 }
 
 func (s *appStorageType) PutViewRecord(view istructs.QName, workspace istructs.WSID, pKey []byte, cCols []byte, value []byte) (err error) {
@@ -263,8 +270,9 @@ func (s *appStorageType) PutViewRecord(view istructs.QName, workspace istructs.W
 		int64(workspace),
 		int16(qid),
 		pKey,
-		cCols,
+		safeCcols(cCols),
 		value).
+		Consistency(gocql.Quorum).
 		Exec()
 }
 
@@ -297,6 +305,7 @@ func (s *appStorageType) ReadView(ctx context.Context, view istructs.QName, work
 			partialCCols,
 			c.doUpperBound())
 	}
+	q.Consistency(gocql.Quorum)
 	scanner := q.Iter().Scanner()
 	closeScanner := func(err error) error {
 		e := scanner.Err()
@@ -336,7 +345,8 @@ func (s *appStorageType) GetViewRecord(view istructs.QName, workspace istructs.W
 		int64(workspace),
 		int16(qid),
 		pKey,
-		cCols).
+		safeCcols(cCols)).
+		Consistency(gocql.Quorum).
 		Scan(data)
 	if errors.Is(err, gocql.ErrNotFound) {
 		return false, nil
@@ -361,38 +371,28 @@ func (s *appStorageType) GetQNameID(name istructs.QName) (qid istorage.QNameID, 
 	}
 
 	var id int32
-	err = s.session.Query(fmt.Sprintf("select max(id) from %s.qnames", s.keyspace())).Scan(&id)
+	err = s.session.Query(fmt.Sprintf("select max(id) from %s.qnames", s.keyspace())).Consistency(gocql.Quorum).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
 	id++
 	qid = istorage.QNameID(id)
-	err = s.session.Query(fmt.Sprintf("insert into %s.qnames (name, id) values (?,?)", s.keyspace()), name.String(), id).Exec()
+	err = s.session.Query(fmt.Sprintf("insert into %s.qnames (name, id) values (?,?)", s.keyspace()), name.String(), id).Consistency(gocql.Quorum).Exec()
 	return
 }
 
 func (s *appStorageType) getQNameID(name istructs.QName) (qid istorage.QNameID, err error) {
 	var id int32
-	err = s.session.Query(fmt.Sprintf("select id from %s.qnames where name = ?", s.keyspace()), name.String()).Scan(&id)
+	err = s.session.Query(fmt.Sprintf("select id from %s.qnames where name = ?", s.keyspace()), name.String()).Consistency(gocql.Quorum).Scan(&id)
 	if err == nil {
 		qid = istorage.QNameID(id)
 		return qid, nil
-	}
-	if !errors.Is(err, gocql.ErrNotFound) {
-		return 0, err
 	}
 	return
 }
 
 func crackID(id istructs.IDType) (hi int64, low int16) {
 	return int64(id >> PartitionBits), int16(id & LowMask)
-}
-
-func getConsistency(highConsistency bool) gocql.Consistency {
-	if highConsistency {
-		return gocql.Quorum
-	}
-	return gocql.LocalOne
 }
 
 type partialClusteringColumns struct {
