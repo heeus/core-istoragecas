@@ -3,9 +3,9 @@ module github.com/heeus/core-istoragecas
 go 1.17
 
 require (
-	github.com/gocql/gocql v0.0.0-20211015133455-b225f9b53fa1
-	github.com/heeus/core-istorage v0.0.0-20211229143716-b512811bd409
-	github.com/heeus/core-istoragemem v0.0.0-20211229143850-2e7b11063ae7
+	github.com/gocql/gocql v0.0.0-20211222173705-d73e6b1002a7
+	github.com/heeus/core-istorage v0.0.0-20220112141343-00a7fbe64e42
+	github.com/heeus/core-istoragemem v0.0.0-20220112151410-b240828062fd
 	github.com/heeus/core-istructs v0.0.0-20211229142808-f697cf7db486
 	github.com/stretchr/testify v1.7.0
 )
