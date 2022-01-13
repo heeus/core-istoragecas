@@ -151,27 +151,6 @@ func testAppStorage_ViewRecords_Cassandra(t *testing.T, storage istorage.IAppSto
 		require.Equal([]byte{0x00, 0xff, 0xfe}, viewRecords["Sprite"])
 		require.Equal([]byte{0x00, 0xff, 0xff}, viewRecords["Pepsi"])
 	})
-
-	// t.Run("Should be able to pass nil clustering columns to GetViewRecord / PutViewRecord", func(t *testing.T) {
-	// 	viewRecords := make(map[string][]byte)
-	// 	reader := func(clustCols, viewRecord []byte) (err error) {
-	// 		viewRecords[string(viewRecord)] = append(clustCols[:0:0], clustCols...)
-	// 		return err
-	// 	}
-
-	// 	storage.PutViewRecord(viewName, istructs.WSID(202), []byte{0xaa}, nil, []byte("Cola"))
-
-	// 	require.NoError(storage.ReadView(ctx, viewName, istructs.WSID(202), []byte{0xaa}, nil, reader))
-
-	// 	require.Len(viewRecords, 1)
-	// 	require.Equal(0, len(viewRecords["Cola"]))
-
-	// 	var data []byte
-	// 	ok, err := storage.GetViewRecord(viewName, istructs.WSID(202), []byte{0xaa}, nil, &data)
-	// 	require.True(ok)
-	// 	require.NoError(err, err)
-	// 	require.Equal([]byte("Cola"), data)
-	// })
 }
 
 func setUp(testKeyspacesCount int) {
