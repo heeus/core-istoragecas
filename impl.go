@@ -142,11 +142,11 @@ func doWithAttempts(attempts int, delay time.Duration, cmd func() error) (err er
 	for i := 0; i < attempts; i++ {
 		err = cmd()
 		if err == nil {
-			return
+			return nil // success
 		}
 		time.Sleep(delay)
 	}
-	return
+	return err
 }
 
 func (s *appStorageType) keyspace() string {
@@ -279,7 +279,7 @@ func (s *appStorageType) PutViewRecord(view istructs.QName, workspace istructs.W
 func (s *appStorageType) ReadView(ctx context.Context, view istructs.QName, workspace istructs.WSID, pKey []byte, partialCCols []byte, cb istorage.ViewReaderCallback) (err error) {
 	qid, err := s.GetQNameID(view)
 	if err != nil {
-		return
+		return err
 	}
 	c := partialClusteringColumns{partialCCols}
 	var q *gocql.Query
@@ -329,7 +329,7 @@ func (s *appStorageType) ReadView(ctx context.Context, view istructs.QName, work
 			return closeScanner(err)
 		}
 		if ctx.Err() != nil {
-			return
+			return nil // TCK contract
 		}
 	}
 	return closeScanner(nil)
@@ -338,7 +338,7 @@ func (s *appStorageType) ReadView(ctx context.Context, view istructs.QName, work
 func (s *appStorageType) GetViewRecord(view istructs.QName, workspace istructs.WSID, pKey []byte, cCols []byte, data *[]byte) (ok bool, err error) {
 	qid, err := s.GetQNameID(view)
 	if err != nil {
-		return
+		return false, err
 	}
 	*data = (*data)[0:0]
 	err = s.session.Query(fmt.Sprintf("select value from %s.view_records where wsid=? and qname=? and p_key=? and c_col=?", s.keyspace()),
@@ -352,7 +352,7 @@ func (s *appStorageType) GetViewRecord(view istructs.QName, workspace istructs.W
 		return false, nil
 	}
 	if err != nil {
-		return
+		return false, err
 	}
 	return true, nil
 }
@@ -360,14 +360,14 @@ func (s *appStorageType) GetViewRecord(view istructs.QName, workspace istructs.W
 func (s *appStorageType) GetQNameID(name istructs.QName) (qid istorage.QNameID, err error) {
 	qid, err = s.getQNameID(name)
 	if err == nil {
-		return
+		return qid, err
 	}
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	//Double check
 	qid, err = s.getQNameID(name)
 	if err == nil {
-		return
+		return qid, nil // success
 	}
 
 	var id int32
@@ -378,7 +378,7 @@ func (s *appStorageType) GetQNameID(name istructs.QName) (qid istorage.QNameID, 
 	id++
 	qid = istorage.QNameID(id)
 	err = s.session.Query(fmt.Sprintf("insert into %s.qnames (name, id) values (?,?)", s.keyspace()), name.String(), id).Consistency(gocql.Quorum).Exec()
-	return
+	return qid, err // success if insert
 }
 
 func (s *appStorageType) getQNameID(name istructs.QName) (qid istorage.QNameID, err error) {
@@ -386,9 +386,9 @@ func (s *appStorageType) getQNameID(name istructs.QName) (qid istorage.QNameID, 
 	err = s.session.Query(fmt.Sprintf("select id from %s.qnames where name = ?", s.keyspace()), name.String()).Consistency(gocql.Quorum).Scan(&id)
 	if err == nil {
 		qid = istorage.QNameID(id)
-		return qid, nil
+		return qid, nil // success
 	}
-	return
+	return 0, err
 }
 
 func crackID(id istructs.IDType) (hi int64, low int16) {
