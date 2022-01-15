@@ -5,6 +5,7 @@
 package istoragecas
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -276,35 +277,7 @@ func (s *appStorageType) PutViewRecord(view istructs.QName, workspace istructs.W
 		Exec()
 }
 
-func (s *appStorageType) ReadView(ctx context.Context, view istructs.QName, workspace istructs.WSID, pKey []byte, partialCCols []byte, cb istorage.ViewReaderCallback) (err error) {
-	qid, err := s.GetQNameID(view)
-	if err != nil {
-		return err
-	}
-	c := partialClusteringColumns{partialCCols}
-	var q *gocql.Query
-	if c.isEmpty() {
-		q = s.session.Query(fmt.Sprintf("select c_col, value from %s.view_records "+
-			"where wsid=? and qname=? and p_key=?", s.keyspace()),
-			int64(workspace),
-			int16(qid),
-			pKey)
-	} else if c.isMax() {
-		q = s.session.Query(fmt.Sprintf("select c_col, value from %s.view_records "+
-			"where wsid=? and qname=? and p_key=? and c_col>=?", s.keyspace()),
-			int64(workspace),
-			int16(qid),
-			pKey,
-			partialCCols)
-	} else {
-		q = s.session.Query(fmt.Sprintf("select c_col, value from %s.view_records "+
-			"where wsid=? and qname=? and p_key=? and c_col>=? and c_col<?", s.keyspace()),
-			int64(workspace),
-			int16(qid),
-			pKey,
-			partialCCols,
-			c.doUpperBound())
-	}
+func scanViewQuery(ctx context.Context, q *gocql.Query, cb istorage.ViewReaderCallback) (err error) {
 	q.Consistency(gocql.Quorum)
 	scanner := q.Iter().Scanner()
 	closeScanner := func(err error) error {
@@ -333,6 +306,50 @@ func (s *appStorageType) ReadView(ctx context.Context, view istructs.QName, work
 		}
 	}
 	return closeScanner(nil)
+}
+
+func (s *appStorageType) ReadView(ctx context.Context, view istructs.QName, workspace istructs.WSID, pKey []byte, partialCCols []byte, cb istorage.ViewReaderCallback) (err error) {
+	c := partialClusteringColumns{partialCCols}
+	if c.isEmpty() {
+		return s.ReadViewRange(ctx, view, workspace, pKey, nil, nil, cb)
+	} else if c.isMax() {
+		return s.ReadViewRange(ctx, view, workspace, pKey, partialCCols, nil, cb)
+	} else {
+		return s.ReadViewRange(ctx, view, workspace, pKey, partialCCols, c.doUpperBound(), cb)
+	}
+}
+
+func (s *appStorageType) ReadViewRange(ctx context.Context, view istructs.QName, workspace istructs.WSID, pKey []byte, startCCols, finishCCols []byte, cb istorage.ViewReaderCallback) (err error) {
+	if (len(startCCols) > 0) && (len(finishCCols) > 0) && (bytes.Compare(startCCols, finishCCols) >= 0) {
+		return nil // absurd range
+	}
+
+	qid, err := s.GetQNameID(view)
+	if err != nil {
+		return err
+	}
+
+	qText := fmt.Sprintf("select c_col, value from %s.view_records "+
+		"where wsid=? and qname=? and p_key=?", s.keyspace())
+
+	var q *gocql.Query
+	if len(startCCols) == 0 {
+		if len(finishCCols) == 0 {
+			// opened range
+			q = s.session.Query(qText, int64(workspace), int16(qid), pKey)
+		} else {
+			// left-opened range
+			q = s.session.Query(qText+" and c_col<?", int64(workspace), int16(qid), pKey, finishCCols)
+		}
+	} else if len(finishCCols) == 0 {
+		// right-opened range
+		q = s.session.Query(qText+" and c_col>=?", int64(workspace), int16(qid), pKey, startCCols)
+	} else {
+		// closed range
+		q = s.session.Query(qText+" and c_col>=? and c_col<?", int64(workspace), int16(qid), pKey, startCCols, finishCCols)
+	}
+
+	return scanViewQuery(ctx, q, cb)
 }
 
 func (s *appStorageType) GetViewRecord(view istructs.QName, workspace istructs.WSID, pKey []byte, cCols []byte, data *[]byte) (ok bool, err error) {
