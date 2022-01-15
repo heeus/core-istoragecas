@@ -277,6 +277,37 @@ func (s *appStorageType) PutViewRecord(view istructs.QName, workspace istructs.W
 		Exec()
 }
 
+func scanViewQuery(ctx context.Context, q *gocql.Query, cb istorage.ViewReaderCallback) (err error) {
+	q.Consistency(gocql.Quorum)
+	scanner := q.Iter().Scanner()
+	closeScanner := func(err error) error {
+		e := scanner.Err()
+		if e != nil {
+			if err != nil {
+				return fmt.Errorf("%s %w", err.Error(), e)
+			}
+			return e
+		}
+		return err
+	}
+	for scanner.Next() {
+		clustCols := make([]byte, 0)
+		viewRecord := make([]byte, 0)
+		err = scanner.Scan(&clustCols, &viewRecord)
+		if err != nil {
+			return closeScanner(err)
+		}
+		err = cb(clustCols, viewRecord)
+		if err != nil {
+			return closeScanner(err)
+		}
+		if ctx.Err() != nil {
+			return nil // TCK contract
+		}
+	}
+	return closeScanner(nil)
+}
+
 func (s *appStorageType) ReadView(ctx context.Context, view istructs.QName, workspace istructs.WSID, pKey []byte, partialCCols []byte, cb istorage.ViewReaderCallback) (err error) {
 	c := partialClusteringColumns{partialCCols}
 	if c.isEmpty() {
@@ -318,34 +349,7 @@ func (s *appStorageType) ReadViewRange(ctx context.Context, view istructs.QName,
 		q = s.session.Query(qText+" and c_col>=? and c_col<?", int64(workspace), int16(qid), pKey, startCCols, finishCCols)
 	}
 
-	q.Consistency(gocql.Quorum)
-	scanner := q.Iter().Scanner()
-	closeScanner := func(err error) error {
-		e := scanner.Err()
-		if e != nil {
-			if err != nil {
-				return fmt.Errorf("%s %w", err.Error(), e)
-			}
-			return e
-		}
-		return err
-	}
-	for scanner.Next() {
-		clustCols := make([]byte, 0)
-		viewRecord := make([]byte, 0)
-		err = scanner.Scan(&clustCols, &viewRecord)
-		if err != nil {
-			return closeScanner(err)
-		}
-		err = cb(clustCols, viewRecord)
-		if err != nil {
-			return closeScanner(err)
-		}
-		if ctx.Err() != nil {
-			return nil // TCK contract
-		}
-	}
-	return closeScanner(nil)
+	return scanViewQuery(ctx, q, cb)
 }
 
 func (s *appStorageType) GetViewRecord(view istructs.QName, workspace istructs.WSID, pKey []byte, cCols []byte, data *[]byte) (ok bool, err error) {
