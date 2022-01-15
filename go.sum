@@ -13,8 +13,8 @@ github.com/golang/snappy v0.0.4/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEW
 github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed h1:5upAirOpQc1Q53c0bnx2ufif5kANL7bfZWcc6VJWJd8=
 github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed/go.mod h1:tMWxXQ9wFIaZeTI9F+hmhFiGpFmhOHzyShyFUhRm0H4=
 github.com/heeus/core-istorage v0.0.0-20211229143716-b512811bd409/go.mod h1:N6HwCaDpLwE3/zvgGpWI52C2QJb/aF2pnuNCosODLE4=
-github.com/heeus/core-istorage v0.0.0-20220112141343-00a7fbe64e42 h1:96cBlInCyOYOJS1joo/Qt2YkH/FbuHzHJZxGVx28Ldw=
-github.com/heeus/core-istorage v0.0.0-20220112141343-00a7fbe64e42/go.mod h1:N6HwCaDpLwE3/zvgGpWI52C2QJb/aF2pnuNCosODLE4=
+github.com/heeus/core-istorage v0.0.0-20220115105517-e2a6bf8abf2f h1:Iqr/5IDXFnOybJDkAMZ7j0iZwXBAP1zYF6KmWwmpuSM=
+github.com/heeus/core-istorage v0.0.0-20220115105517-e2a6bf8abf2f/go.mod h1:N6HwCaDpLwE3/zvgGpWI52C2QJb/aF2pnuNCosODLE4=
 github.com/heeus/core-istoragemem v0.0.0-20220112151410-b240828062fd h1:qlcnomQ3GgN9d//FgnVEIm8dZN0+SVTwxMS3ZimgAnk=
 github.com/heeus/core-istoragemem v0.0.0-20220112151410-b240828062fd/go.mod h1:dn+PSTvrMKrarqi3yPE1EnB8XWyYVNEhB5wxIiLpRNA=
 github.com/heeus/core-istructs v0.0.0-20211229142808-f697cf7db486 h1:BVSexTlcdatxWmMAnA00ln6IQ8HE3lraXweVMGaoOfo=
