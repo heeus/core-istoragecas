@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -67,7 +66,6 @@ func (p appStorageProviderType) release() {
 type appStorageType struct {
 	cluster *gocql.ClusterConfig
 	appPar  AppCassandraParamsType
-	lock    sync.Mutex
 	session *gocql.Session
 }
 
