@@ -5,7 +5,6 @@
 package istoragecas
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -39,8 +38,6 @@ func TestBasicUsage(t *testing.T) {
 	}
 	fmt.Println("=== storage keyspace", appPar.Keyspace)
 	istoragemem.TechnologyCompatibilityKit(t, storage)
-	t.Run("TestAppStorage_ViewRecords_Cassandra", func(t *testing.T) { testAppStorage_ViewRecords_Cassandra(t, storage) })
-	t.Run("TestAppStorage_GetQNameID_Cassandra", func(t *testing.T) { testAppStorage_GetQNameID_Cassandra(t, storage) })
 }
 
 func TestMultiplyApps(t *testing.T) {
@@ -73,7 +70,6 @@ func TestMultiplyApps(t *testing.T) {
 		storage, err := provide.AppStorage(app)
 		require.Nil(err)
 		istoragemem.TechnologyCompatibilityKit(t, storage)
-		testAppStorage_ViewRecords_Cassandra(t, storage)
 	}
 
 	for n := range appPar {
@@ -82,75 +78,6 @@ func TestMultiplyApps(t *testing.T) {
 	}
 
 	wg.Wait()
-}
-
-func testAppStorage_GetQNameID_Cassandra(t *testing.T, storage istorage.IAppStorage) {
-	t.Run("Should get id concurrently", func(t *testing.T) {
-		require := require.New(t)
-		qids := make(chan istorage.QNameID, 5)
-		wg := sync.WaitGroup{}
-		wg.Add(5)
-		for i := 0; i < 5; i++ {
-			go func() {
-				qid, err := storage.GetQNameID(istructs.NewQName("test", "GetIdConcurrently"))
-
-				qids <- qid
-				require.NoError(err)
-				wg.Done()
-			}()
-		}
-		wg.Wait()
-		close(qids)
-		result := make(map[istorage.QNameID]bool)
-		for qid := range qids {
-			result[qid] = true
-		}
-
-		require.Len(result, 1)
-	})
-}
-
-func testAppStorage_ViewRecords_Cassandra(t *testing.T, storage istorage.IAppStorage) {
-
-	ctx := context.Background()
-	require := require.New(t)
-
-	viewName := istructs.NewQName("bo", "Article")
-
-	t.Run("Should read view records by partial clustering columns when partial clustering columns first two bytes is 0xff", func(t *testing.T) {
-		viewRecords := make(map[string][]byte)
-		reader := func(clustCols, viewRecord []byte) (err error) {
-			viewRecords[string(viewRecord)] = append(clustCols[:0:0], clustCols...)
-			return err
-		}
-		storage.PutViewRecord(viewName, istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff, 0xfe}, []byte("Cola"))
-		storage.PutViewRecord(viewName, istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff, 0xff}, []byte("7up"))
-		storage.PutViewRecord(viewName, istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xfe, 0xff}, []byte("Sprite"))
-		storage.PutViewRecord(viewName, istructs.WSID(200), []byte{0xff}, []byte{0xfe, 0xff, 0xff}, []byte("Pepsi"))
-
-		require.NoError(storage.ReadView(ctx, viewName, istructs.WSID(200), []byte{0xff}, []byte{0xff, 0xff}, reader))
-
-		require.Len(viewRecords, 2)
-		require.Equal([]byte{0xff, 0xff, 0xfe}, viewRecords["Cola"])
-		require.Equal([]byte{0xff, 0xff, 0xff}, viewRecords["7up"])
-	})
-	t.Run("Should read view records by partial clustering columns when partial clustering columns first two bytes is 0x00 and 0xff", func(t *testing.T) {
-		viewRecords := make(map[string][]byte)
-		reader := func(clustCols, viewRecord []byte) (err error) {
-			viewRecords[string(viewRecord)] = append(clustCols[:0:0], clustCols...)
-			return err
-		}
-		storage.PutViewRecord(viewName, istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xfe, 0xfe}, []byte("Cola"))
-		storage.PutViewRecord(viewName, istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xfe, 0xff}, []byte("7up"))
-		storage.PutViewRecord(viewName, istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff, 0xfe}, []byte("Sprite"))
-		storage.PutViewRecord(viewName, istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff, 0xff}, []byte("Pepsi"))
-
-		require.NoError(storage.ReadView(ctx, viewName, istructs.WSID(201), []byte{0xff}, []byte{0x00, 0xff}, reader))
-
-		require.Len(viewRecords, 2)
-		require.Equal([]byte{0x00, 0xff, 0xfe}, viewRecords["Sprite"])
-		require.Equal([]byte{0x00, 0xff, 0xff}, viewRecords["Pepsi"])
-	})
 }
 
 func setUp(testKeyspacesCount int) {
