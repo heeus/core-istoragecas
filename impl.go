@@ -34,6 +34,7 @@ func newStorageProvider(casPar CassandraParamsType, apps map[istructs.AppQName]A
 		provider.cluster.Port = casPar.Port
 	}
 	provider.cluster.Consistency = gocql.Quorum
+	provider.cluster.ConnectTimeout = InitialConnectionTimeout
 	provider.cluster.Timeout = ConnectionTimeout
 	provider.cluster.Authenticator = gocql.PasswordAuthenticator{Username: casPar.Username, Password: casPar.Pwd}
 
