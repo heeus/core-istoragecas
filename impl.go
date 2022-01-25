@@ -37,6 +37,8 @@ func newStorageProvider(casPar CassandraParamsType, apps map[istructs.AppQName]A
 	provider.cluster.ConnectTimeout = InitialConnectionTimeout
 	provider.cluster.Timeout = ConnectionTimeout
 	provider.cluster.Authenticator = gocql.PasswordAuthenticator{Username: casPar.Username, Password: casPar.Pwd}
+	provider.cluster.CQLVersion = casPar.cqlVersion()
+	provider.cluster.ProtoVersion = casPar.ProtoVersion
 
 	for appName, appPars := range apps {
 		storage, err := newStorage(provider.cluster, appPars)

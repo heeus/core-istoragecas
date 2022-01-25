@@ -194,3 +194,27 @@ func Test_newStorage(t *testing.T) {
 		})
 	})
 }
+
+func TestCassandraParamsType_cqlVersion(t *testing.T) {
+	tests := []struct {
+		name           string
+		cqlVersion     string
+		wantCqlVersion string
+	}{
+		{
+			name:           "Should get default",
+			cqlVersion:     "",
+			wantCqlVersion: "3.0.0",
+		},
+		{
+			name:           "Should get custom",
+			cqlVersion:     "1.2.3",
+			wantCqlVersion: "1.2.3",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require.Equal(t, test.wantCqlVersion, CassandraParamsType{CQLVersion: test.cqlVersion}.cqlVersion())
+		})
+	}
+}
