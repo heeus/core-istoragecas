@@ -138,6 +138,16 @@ func (s *appStorageType) Put(pKey []byte, cCols []byte, value []byte) (err error
 		Exec()
 }
 
+func (s *appStorageType) PutBatch(items []istorage.BatchItem) (err error) {
+	batch := s.session.NewBatch(gocql.LoggedBatch)
+	batch.SetConsistency(gocql.Quorum)
+	stmt := fmt.Sprintf("insert into %s.values (p_key, c_col, value) values (?,?,?)", s.keyspace())
+	for _, item := range items {
+		batch.Query(stmt, item.PKey, safeCcols(item.CCols), item.Value)
+	}
+	return s.session.ExecuteBatch(batch)
+}
+
 func scanViewQuery(ctx context.Context, q *gocql.Query, cb istorage.ReadCallback) (err error) {
 	q.Consistency(gocql.Quorum)
 	scanner := q.Iter().Scanner()
