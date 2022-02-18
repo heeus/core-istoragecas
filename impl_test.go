@@ -19,13 +19,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const casDefaultPort = 9042
+const casDefaultHost = "127.0.0.1"
+
 func TestBasicUsage(t *testing.T) {
 	setUp(1)         // setup test sandbox
 	defer tearDown() // clear test sandbox
 
 	casPar := CassandraParamsType{
-		Hosts: hosts("127.0.0.1"),
-		Port:  port(9042),
+		Hosts: hosts(),
+		Port:  port(),
 	}
 	appPar := AppCassandraParamsType{
 		Keyspace: "testspace_0",
@@ -49,8 +52,8 @@ func TestMultiplyApps(t *testing.T) {
 	require := require.New(t)
 
 	casPar := CassandraParamsType{
-		Hosts: hosts("127.0.0.1"),
-		Port:  port(9042),
+		Hosts: hosts(),
+		Port:  port(),
 	}
 	appPar := make(map[istructs.AppQName]AppCassandraParamsType, appCount)
 	for appNo := 0; appNo < appCount; appNo++ {
@@ -86,8 +89,8 @@ func setUp(testKeyspacesCount int) {
 
 	// Prepare test keyspaces
 
-	cluster := gocql.NewCluster(strings.Split(hosts("127.0.0.1"), ",")...)
-	cluster.Port = port(9042)
+	cluster := gocql.NewCluster(strings.Split(hosts(), ",")...)
+	cluster.Port = port()
 	cluster.Consistency = gocql.Quorum
 	cluster.Timeout = ConnectionTimeout
 
@@ -111,8 +114,8 @@ func setUp(testKeyspacesCount int) {
 
 func tearDown() {
 	// drop test keyspaces
-	cluster := gocql.NewCluster(strings.Split(hosts("127.0.0.1"), ",")...)
-	cluster.Port = port(9042)
+	cluster := gocql.NewCluster(strings.Split(hosts(), ",")...)
+	cluster.Port = port()
 	cluster.Consistency = gocql.Quorum
 	cluster.Timeout = ConnectionTimeout
 
@@ -140,18 +143,18 @@ func tearDown() {
 	}
 }
 
-func hosts(defaultValue string) string {
+func hosts() string {
 	value, ok := os.LookupEnv("ISTORAGECAS_HOSTS")
 	if !ok {
-		return defaultValue
+		return casDefaultHost
 	}
 	return value
 }
 
-func port(defaultValue int) int {
+func port() int {
 	value, ok := os.LookupEnv("ISTORAGECAS_PORT")
 	if !ok {
-		return defaultValue
+		return casDefaultPort
 	}
 	result, err := strconv.Atoi(value)
 	if err != nil {
@@ -180,8 +183,8 @@ func TestAppStorageProvider_AppStorage(t *testing.T) {
 
 func Test_newStorage(t *testing.T) {
 	casPar := CassandraParamsType{
-		Hosts: hosts("127.0.0.1"),
-		Port:  port(9042),
+		Hosts: hosts(),
+		Port:  port(),
 	}
 
 	t.Run("Should return error when keyspace is wrong", func(t *testing.T) {
