@@ -151,32 +151,23 @@ func (s *appStorageType) PutBatch(items []istorage.BatchItem) (err error) {
 func scanViewQuery(ctx context.Context, q *gocql.Query, cb istorage.ReadCallback) (err error) {
 	q.Consistency(gocql.Quorum)
 	scanner := q.Iter().Scanner()
-	closeScanner := func(err error) error {
-		if scanner.Err() != nil {
-			if err != nil {
-				err = fmt.Errorf("%s %w", err.Error(), scanner.Err())
-			} else {
-				err = scanner.Err()
-			}
-		}
-		return err
-	}
+	sc := scannerCloser(scanner)
 	for scanner.Next() {
 		clustCols := make([]byte, 0)
 		viewRecord := make([]byte, 0)
 		err = scanner.Scan(&clustCols, &viewRecord)
 		if err != nil {
-			return closeScanner(err)
+			return sc(err)
 		}
 		err = cb(clustCols, viewRecord)
 		if err != nil {
-			return closeScanner(err)
+			return sc(err)
 		}
 		if ctx.Err() != nil {
 			return nil // TCK contract
 		}
 	}
-	return closeScanner(nil)
+	return sc(nil)
 }
 
 func (s *appStorageType) Read(ctx context.Context, pKey []byte, startCCols, finishCCols []byte, cb istorage.ReadCallback) (err error) {
@@ -218,4 +209,61 @@ func (s *appStorageType) Get(pKey []byte, cCols []byte, data *[]byte) (ok bool, 
 		return false, err
 	}
 	return true, nil
+}
+
+func (s *appStorageType) GetBatch(pKey []byte, items []istorage.GetBatchItem) (err error) {
+	ccToIdx := make(map[string]int)
+	values := make([]interface{}, 0, len(items)+1)
+	values = append(values, pKey)
+
+	stmt := strings.Builder{}
+	stmt.WriteString("select c_col, value from ")
+	stmt.WriteString(s.keyspace())
+	stmt.WriteString(".values where p_key=? and ")
+	stmt.WriteString("c_col in (")
+	for i, item := range items {
+		items[i].Ok = false
+		values = append(values, item.CCols)
+		ccToIdx[string(item.CCols)] = i
+		stmt.WriteRune('?')
+		if i < len(items)-1 {
+			stmt.WriteRune(',')
+		}
+	}
+	stmt.WriteRune(')')
+
+	scanner := s.session.Query(stmt.String(), values...).
+		Consistency(gocql.Quorum).
+		Iter().
+		Scanner()
+	sc := scannerCloser(scanner)
+
+	for scanner.Next() {
+		ccols := make([]byte, 0)
+		value := make([]byte, 0)
+		err = scanner.Scan(&ccols, &value)
+		if err != nil {
+			return sc(err)
+		}
+		idx, ok := ccToIdx[string(ccols)]
+		if ok {
+			items[idx].Ok = true
+			*items[idx].Data = append((*items[idx].Data)[0:0], value...)
+		}
+	}
+
+	return sc(nil)
+}
+
+func scannerCloser(scanner gocql.Scanner) func(error) error {
+	return func(err error) error {
+		if scannerErr := scanner.Err(); scannerErr != nil {
+			if err != nil {
+				err = fmt.Errorf("%s %w", err.Error(), scannerErr)
+			} else {
+				err = scanner.Err()
+			}
+		}
+		return err
+	}
 }
