@@ -212,7 +212,7 @@ func (s *appStorageType) Get(pKey []byte, cCols []byte, data *[]byte) (ok bool, 
 }
 
 func (s *appStorageType) GetBatch(pKey []byte, items []istorage.GetBatchItem) (err error) {
-	ccToIdx := make(map[string]int)
+	ccToIdx := make(map[string][]int)
 	values := make([]interface{}, 0, len(items)+1)
 	values = append(values, pKey)
 
@@ -224,7 +224,7 @@ func (s *appStorageType) GetBatch(pKey []byte, items []istorage.GetBatchItem) (e
 	for i, item := range items {
 		items[i].Ok = false
 		values = append(values, item.CCols)
-		ccToIdx[string(item.CCols)] = i
+		ccToIdx[string(item.CCols)] = append(ccToIdx[string(item.CCols)], i)
 		stmt.WriteRune('?')
 		if i < len(items)-1 {
 			stmt.WriteRune(',')
@@ -245,10 +245,12 @@ func (s *appStorageType) GetBatch(pKey []byte, items []istorage.GetBatchItem) (e
 		if err != nil {
 			return sc(err)
 		}
-		idx, ok := ccToIdx[string(ccols)]
+		ii, ok := ccToIdx[string(ccols)]
 		if ok {
-			items[idx].Ok = true
-			*items[idx].Data = append((*items[idx].Data)[0:0], value...)
+			for _, i := range ii {
+				items[i].Ok = true
+				*items[i].Data = append((*items[i].Data)[0:0], value...)
+			}
 		}
 	}
 

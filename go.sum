@@ -16,6 +16,8 @@ github.com/heeus/core-istorage v0.0.0-20220217114002-26dfd5116f75 h1:ciZETRavXqR
 github.com/heeus/core-istorage v0.0.0-20220217114002-26dfd5116f75/go.mod h1:N6HwCaDpLwE3/zvgGpWI52C2QJb/aF2pnuNCosODLE4=
 github.com/heeus/core-istoragemem v0.0.0-20220217155327-07d45e238ff7 h1:9uE0FGx+Xm7Lo85am3lDhEaBZzhNj5H9VdaxAS6RKew=
 github.com/heeus/core-istoragemem v0.0.0-20220217155327-07d45e238ff7/go.mod h1:4ess9aDVNyFQMAVwgkkIVS2OUnYGKbYtiUXEbbvdmNc=
+github.com/heeus/core-istoragemem v0.0.0-20220322113330-a4f3059417ff h1:vZh4uCYsy/7RaFoqfNhKXk3yIDxxTGjvA3s4TUOqNj4=
+github.com/heeus/core-istoragemem v0.0.0-20220322113330-a4f3059417ff/go.mod h1:4ess9aDVNyFQMAVwgkkIVS2OUnYGKbYtiUXEbbvdmNc=
 github.com/heeus/core-istructs v0.0.0-20211229142808-f697cf7db486 h1:BVSexTlcdatxWmMAnA00ln6IQ8HE3lraXweVMGaoOfo=
 github.com/heeus/core-istructs v0.0.0-20211229142808-f697cf7db486/go.mod h1:oBnZjfHZceR9BDMvXntoryLsgsQuhiKEB11lKHAoiVI=
 github.com/heeus/core-pipeline v0.0.0-20211020124904-df3caaaecd30/go.mod h1:285jU5GHo8YFDPd60Q6y+Ls4hCqyg3tDKBqLHxUHdrU=
