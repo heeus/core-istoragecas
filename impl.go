@@ -263,7 +263,7 @@ func scannerCloser(scanner gocql.Scanner) func(error) error {
 			if err != nil {
 				err = fmt.Errorf("%s %w", err.Error(), scannerErr)
 			} else {
-				err = scanner.Err()
+				err = scannerErr
 			}
 		}
 		return err
