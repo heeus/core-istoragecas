@@ -27,8 +27,9 @@ func TestBasicUsage(t *testing.T) {
 	defer tearDown() // clear test sandbox
 
 	casPar := CassandraParamsType{
-		Hosts: hosts(),
-		Port:  port(),
+		Hosts:      hosts(),
+		Port:       port(),
+		NumRetries: 3,
 	}
 	appPar := AppCassandraParamsType{
 		Keyspace: "testspace_0",
