@@ -29,7 +29,7 @@ func TestBasicUsage(t *testing.T) {
 	casPar := CassandraParamsType{
 		Hosts:      hosts(),
 		Port:       port(),
-		NumRetries: 3,
+		NumRetries: RetryAttempt,
 	}
 	appPar := AppCassandraParamsType{
 		Keyspace: "testspace_0",

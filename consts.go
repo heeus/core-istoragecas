@@ -10,3 +10,4 @@ import "time"
 const InitialConnectionTimeout = 30 * time.Second
 const ConnectionTimeout = 30 * time.Second
 const Attempts = 5
+const RetryAttempt = 3
