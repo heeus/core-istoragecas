@@ -33,9 +33,14 @@ func newStorageProvider(casPar CassandraParamsType, apps map[istructs.AppQName]A
 	if casPar.Port > 0 {
 		provider.cluster.Port = casPar.Port
 	}
+	if casPar.NumRetries <= 0 {
+		casPar.NumRetries = RetryAttempt
+	}
+	retryPolicy := gocql.SimpleRetryPolicy{NumRetries: casPar.NumRetries}
 	provider.cluster.Consistency = gocql.Quorum
 	provider.cluster.ConnectTimeout = InitialConnectionTimeout
 	provider.cluster.Timeout = ConnectionTimeout
+	provider.cluster.RetryPolicy = &retryPolicy
 	provider.cluster.Authenticator = gocql.PasswordAuthenticator{Username: casPar.Username, Password: casPar.Pwd}
 	provider.cluster.CQLVersion = casPar.cqlVersion()
 	provider.cluster.ProtoVersion = casPar.ProtoVersion

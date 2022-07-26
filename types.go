@@ -20,6 +20,7 @@ type CassandraParamsType struct {
 	Pwd          string
 	ProtoVersion int
 	CQLVersion   string
+	NumRetries   int
 }
 
 func (p CassandraParamsType) cqlVersion() string {
