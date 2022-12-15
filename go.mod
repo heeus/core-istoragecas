@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/gocql/gocql v0.0.0-20211222173705-d73e6b1002a7
-	github.com/heeus/core v0.0.0-20221215125436-2f1e0f296f5f
+	github.com/heeus/core v0.0.0-20221215130720-9803243b1e47
 	github.com/stretchr/testify v1.8.0
 )
 
