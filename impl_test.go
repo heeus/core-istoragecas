@@ -13,9 +13,8 @@ import (
 	"testing"
 
 	"github.com/gocql/gocql"
-	istorage "github.com/heeus/core-istorage"
-	istoragemem "github.com/heeus/core-istoragemem"
-	istructs "github.com/heeus/core-istructs"
+	istorage "github.com/heeus/core/istorage"
+	istructs "github.com/heeus/core/istructs"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,7 +40,7 @@ func TestBasicUsage(t *testing.T) {
 		panic(err)
 	}
 	fmt.Println("=== storage keyspace", appPar.Keyspace)
-	istoragemem.TechnologyCompatibilityKit(t, storage)
+	istorage.TechnologyCompatibilityKit(t, storage)
 }
 
 func TestMultiplyApps(t *testing.T) {
@@ -73,7 +72,7 @@ func TestMultiplyApps(t *testing.T) {
 		defer wg.Done()
 		storage, err := provide.AppStorage(app)
 		require.Nil(err)
-		istoragemem.TechnologyCompatibilityKit(t, storage)
+		istorage.TechnologyCompatibilityKit(t, storage)
 	}
 
 	for n := range appPar {

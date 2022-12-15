@@ -5,8 +5,8 @@
 package istoragecas
 
 import (
-	istorage "github.com/heeus/core-istorage"
-	istructs "github.com/heeus/core-istructs"
+	istorage "github.com/heeus/core/istorage"
+	istructs "github.com/heeus/core/istructs"
 )
 
 // Provide s.e.

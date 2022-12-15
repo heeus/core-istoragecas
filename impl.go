@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
-	istorage "github.com/heeus/core-istorage"
-	istructs "github.com/heeus/core-istructs"
+	istorage "github.com/heeus/core/istorage"
+	istructs "github.com/heeus/core/istructs"
 )
 
 type appStorageProviderType struct {
