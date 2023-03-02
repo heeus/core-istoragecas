@@ -10,10 +10,12 @@ github.com/gocql/gocql v0.0.0-20211222173705-d73e6b1002a7/go.mod h1:3gM2c4D3AnkI
 github.com/golang/snappy v0.0.3/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
 github.com/golang/snappy v0.0.4 h1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=
 github.com/golang/snappy v0.0.4/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
+github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
+github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed h1:5upAirOpQc1Q53c0bnx2ufif5kANL7bfZWcc6VJWJd8=
 github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed/go.mod h1:tMWxXQ9wFIaZeTI9F+hmhFiGpFmhOHzyShyFUhRm0H4=
-github.com/heeus/core v0.0.0-20221215130720-9803243b1e47 h1:uskRu6X5nIlwGOOp2EzCrJFyidU54ZSL+k0KnUR2nYY=
-github.com/heeus/core v0.0.0-20221215130720-9803243b1e47/go.mod h1:MlIfmOZ/bRg6D78wYuADghTnHoJKtYR7wAY2CVwtIRU=
+github.com/heeus/core v0.0.0-20230302130159-8e5fdd9ff7c4 h1:mg8cSxw92p/Wxq8JPI7k4MUrfp5aeu5mNQ/uomoqA60=
+github.com/heeus/core v0.0.0-20230302130159-8e5fdd9ff7c4/go.mod h1:+00EzrV9gsXKQ+/KtZ9cUGrFfp6WJmV1gJh5+cP9gjM=
 github.com/kr/pretty v0.1.0 h1:L/CwN0zerZDmRFUapSPitk6f+Q3+0za1rQkzVuMiMFI=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=

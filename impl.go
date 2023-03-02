@@ -10,121 +10,131 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/gocql/gocql"
 	istorage "github.com/heeus/core/istorage"
-	istructs "github.com/heeus/core/istructs"
 )
 
 type appStorageProviderType struct {
 	casPar  CassandraParamsType
 	cluster *gocql.ClusterConfig
-	cache   map[istructs.AppQName]istorage.IAppStorage
 }
 
-func newStorageProvider(casPar CassandraParamsType, apps map[istructs.AppQName]AppCassandraParamsType) (prov *appStorageProviderType, err error) {
+func newStorageProvider(casPar CassandraParamsType) (prov *appStorageProviderType) {
 	provider := appStorageProviderType{
 		casPar: casPar,
-		cache:  make(map[istructs.AppQName]istorage.IAppStorage),
 	}
-
 	provider.cluster = gocql.NewCluster(strings.Split(casPar.Hosts, ",")...)
 	if casPar.Port > 0 {
 		provider.cluster.Port = casPar.Port
 	}
 	if casPar.NumRetries <= 0 {
-		casPar.NumRetries = RetryAttempt
+		casPar.NumRetries = retryAttempt
 	}
 	retryPolicy := gocql.SimpleRetryPolicy{NumRetries: casPar.NumRetries}
 	provider.cluster.Consistency = gocql.Quorum
-	provider.cluster.ConnectTimeout = InitialConnectionTimeout
+	provider.cluster.ConnectTimeout = initialConnectionTimeout
 	provider.cluster.Timeout = ConnectionTimeout
 	provider.cluster.RetryPolicy = &retryPolicy
 	provider.cluster.Authenticator = gocql.PasswordAuthenticator{Username: casPar.Username, Password: casPar.Pwd}
 	provider.cluster.CQLVersion = casPar.cqlVersion()
 	provider.cluster.ProtoVersion = casPar.ProtoVersion
-
-	for appName, appPars := range apps {
-		storage, err := newStorage(provider.cluster, appPars)
-		if err != nil {
-			return nil, fmt.Errorf("can't create application «%s» keyspace: %w", appName, err)
-		}
-		provider.cache[appName] = storage
-	}
-
-	return &provider, nil
+	return &provider
 }
 
-func (p appStorageProviderType) AppStorage(appName istructs.AppQName) (storage istorage.IAppStorage, err error) {
-	storage, ok := p.cache[appName]
-	if !ok {
-		return nil, istructs.ErrAppNotFound
+func (p appStorageProviderType) AppStorage(appName istorage.SafeAppName) (storage istorage.IAppStorage, err error) {
+	session, err := getSession(p.cluster)
+	if err != nil {
+		// notest
+		return nil, err
+	}
+	defer session.Close()
+	keyspaceExists, err := isKeyspaceExists(appName.String(), session)
+	if err != nil {
+		return nil, err
+	}
+	if !keyspaceExists {
+		return nil, istorage.ErrStorageDoesNotExist
+	}
+	if storage, err = newStorage(p.cluster, appName.String(), p.casPar.KeyspaceWithReplication); err != nil {
+		return nil, fmt.Errorf("can't create application «%s» keyspace: %w", appName, err)
 	}
 	return storage, nil
 }
 
-func (p appStorageProviderType) release() {
-	for _, iStorage := range p.cache {
-		storage := iStorage.(*appStorageType)
-		storage.session.Close()
+func isKeyspaceExists(name string, session *gocql.Session) (bool, error) {
+	dummy := ""
+	if err := session.Query("select keyspace_name from system_schema.keyspaces where keyspace_name = ?;", name).Scan(&dummy); err != nil {
+		if err == gocql.ErrNotFound {
+			return false, nil
+		}
+		// notest
+		return false, err
 	}
+	return true, nil
+}
+
+func (p appStorageProviderType) Init(appName istorage.SafeAppName) error {
+	session, err := getSession(p.cluster)
+	if err != nil {
+		// notest
+		return err
+	}
+	defer session.Close()
+	keyspace := appName.String()
+	keyspaceExists, err := isKeyspaceExists(keyspace, session)
+	if err != nil {
+		// notest
+		return err
+	}
+	if keyspaceExists {
+		return istorage.ErrStorageAlreadyExist
+	}
+
+	// create keyspace
+	//
+	q := fmt.Sprintf("create keyspace %s with replication = %s;", keyspace, p.casPar.KeyspaceWithReplication)
+	err = session.
+		Query(q).
+		Consistency(gocql.Quorum).
+		Exec()
+	if err != nil {
+		return fmt.Errorf("failed to create keyspace %s: %w", keyspace, err)
+	}
+
+	// prepare storage tables
+	if err = session.Query(fmt.Sprintf(`create table if not exists %s.values (p_key blob, c_col blob, value blob, primary key ((p_key), c_col))`, keyspace)).
+		Consistency(gocql.Quorum).Exec(); err != nil {
+		return fmt.Errorf("can't create table «value»: %w", err)
+	}
+	return nil
 }
 
 type appStorageType struct {
-	cluster *gocql.ClusterConfig
-	appPar  AppCassandraParamsType
-	session *gocql.Session
+	cluster  *gocql.ClusterConfig
+	session  *gocql.Session
+	keyspace string
 }
 
-func newStorage(cluster *gocql.ClusterConfig, appPar AppCassandraParamsType) (storage istorage.IAppStorage, err error) {
-
-	// prepare storage tables
-	tables := []struct{ name, cql string }{
-		{name: "values",
-			cql: `(
-		 		p_key 		blob,
-		 		c_col			blob,
-		 		value			blob,
-		 		primary key 	((p_key), c_col)
-			)`},
-	}
-
+func getSession(cluster *gocql.ClusterConfig) (*gocql.Session, error) {
 	session, err := cluster.CreateSession()
 	if err != nil {
 		return nil, fmt.Errorf("can't create session: %w", err)
 	}
+	return session, err
+}
 
-	for _, table := range tables {
-		err = doWithAttempts(Attempts, time.Second, func() error {
-			return session.Query(
-				fmt.Sprintf(`create table if not exists %s.%s %s`, appPar.Keyspace, table.name, table.cql)).Consistency(gocql.Quorum).Exec()
-		})
-		if err != nil {
-			return nil, fmt.Errorf("can't create table «%s»: %w", table.name, err)
-		}
+func newStorage(cluster *gocql.ClusterConfig, keyspace string, keyspaceWithReplication string) (storage istorage.IAppStorage, err error) {
+	session, err := getSession(cluster)
+	if err != nil {
+		return nil, err
 	}
 
 	return &appStorageType{
-		cluster: cluster,
-		appPar:  appPar,
-		session: session,
+		cluster:  cluster,
+		session:  session,
+		keyspace: keyspace,
 	}, nil
-}
-
-func doWithAttempts(attempts int, delay time.Duration, cmd func() error) (err error) {
-	for i := 0; i < attempts; i++ {
-		err = cmd()
-		if err == nil {
-			return nil // success
-		}
-		time.Sleep(delay)
-	}
-	return err
-}
-
-func (s *appStorageType) keyspace() string {
-	return s.appPar.Keyspace
 }
 
 func safeCcols(value []byte) []byte {
@@ -135,7 +145,7 @@ func safeCcols(value []byte) []byte {
 }
 
 func (s *appStorageType) Put(pKey []byte, cCols []byte, value []byte) (err error) {
-	return s.session.Query(fmt.Sprintf("insert into %s.values (p_key, c_col, value) values (?,?,?)", s.keyspace()),
+	return s.session.Query(fmt.Sprintf("insert into %s.values (p_key, c_col, value) values (?,?,?)", s.keyspace),
 		pKey,
 		safeCcols(cCols),
 		value).
@@ -146,7 +156,7 @@ func (s *appStorageType) Put(pKey []byte, cCols []byte, value []byte) (err error
 func (s *appStorageType) PutBatch(items []istorage.BatchItem) (err error) {
 	batch := s.session.NewBatch(gocql.LoggedBatch)
 	batch.SetConsistency(gocql.Quorum)
-	stmt := fmt.Sprintf("insert into %s.values (p_key, c_col, value) values (?,?,?)", s.keyspace())
+	stmt := fmt.Sprintf("insert into %s.values (p_key, c_col, value) values (?,?,?)", s.keyspace)
 	for _, item := range items {
 		batch.Query(stmt, item.PKey, safeCcols(item.CCols), item.Value)
 	}
@@ -180,7 +190,7 @@ func (s *appStorageType) Read(ctx context.Context, pKey []byte, startCCols, fini
 		return nil // absurd range
 	}
 
-	qText := fmt.Sprintf("select c_col, value from %s.values where p_key=?", s.keyspace())
+	qText := fmt.Sprintf("select c_col, value from %s.values where p_key=?", s.keyspace)
 
 	var q *gocql.Query
 	if len(startCCols) == 0 {
@@ -204,16 +214,13 @@ func (s *appStorageType) Read(ctx context.Context, pKey []byte, startCCols, fini
 
 func (s *appStorageType) Get(pKey []byte, cCols []byte, data *[]byte) (ok bool, err error) {
 	*data = (*data)[0:0]
-	err = s.session.Query(fmt.Sprintf("select value from %s.values where p_key=? and c_col=?", s.keyspace()), pKey, safeCcols(cCols)).
+	err = s.session.Query(fmt.Sprintf("select value from %s.values where p_key=? and c_col=?", s.keyspace), pKey, safeCcols(cCols)).
 		Consistency(gocql.Quorum).
 		Scan(data)
 	if errors.Is(err, gocql.ErrNotFound) {
 		return false, nil
 	}
-	if err != nil {
-		return false, err
-	}
-	return true, nil
+	return err == nil, err
 }
 
 func (s *appStorageType) GetBatch(pKey []byte, items []istorage.GetBatchItem) (err error) {
@@ -223,7 +230,7 @@ func (s *appStorageType) GetBatch(pKey []byte, items []istorage.GetBatchItem) (e
 
 	stmt := strings.Builder{}
 	stmt.WriteString("select c_col, value from ")
-	stmt.WriteString(s.keyspace())
+	stmt.WriteString(s.keyspace)
 	stmt.WriteString(".values where p_key=? and ")
 	stmt.WriteString("c_col in (")
 	for i, item := range items {

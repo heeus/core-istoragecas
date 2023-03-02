@@ -5,16 +5,15 @@
 package istoragecas
 
 import (
+	"errors"
+
 	istorage "github.com/heeus/core/istorage"
-	istructs "github.com/heeus/core/istructs"
 )
 
-// Provide s.e.
-func Provide(casPar CassandraParamsType, apps map[istructs.AppQName]AppCassandraParamsType) (asp istorage.IAppStorageProvider, cleanup func()) {
-	provider, err := newStorageProvider(casPar, apps)
-	if err != nil {
-		panic(err)
+func Provide(casPar CassandraParamsType) (asf istorage.IAppStorageFactory, err error) {
+	if len(casPar.KeyspaceWithReplication) == 0 {
+		return nil, errors.New("casPar.KeyspaceWithReplication can not be empty")
 	}
-
-	return provider, provider.release
+	provider := newStorageProvider(casPar)
+	return provider, nil
 }

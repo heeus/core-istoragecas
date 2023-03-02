@@ -4,14 +4,6 @@
 
 package istoragecas
 
-import (
-	istorage "github.com/heeus/core/istorage"
-	istructs "github.com/heeus/core/istructs"
-)
-
-// AppStorageProviderFuncType s.e.
-type AppStorageProviderFuncType func(casPar CassandraParamsType, apps map[istructs.AppQName]AppCassandraParamsType) istorage.IAppStorageProvider
-
 type CassandraParamsType struct {
 	// Comma separated list of hosts
 	Hosts        string
@@ -21,6 +13,9 @@ type CassandraParamsType struct {
 	ProtoVersion int
 	CQLVersion   string
 	NumRetries   int
+
+	// e.g. "{ 'class' : 'SimpleStrategy', 'replication_factor' : 1 }"
+	KeyspaceWithReplication string
 }
 
 func (p CassandraParamsType) cqlVersion() string {
@@ -28,8 +23,4 @@ func (p CassandraParamsType) cqlVersion() string {
 		return "3.0.0"
 	}
 	return p.CQLVersion
-}
-
-type AppCassandraParamsType struct {
-	Keyspace string
 }
