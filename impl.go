@@ -56,7 +56,7 @@ func (p appStorageProviderType) AppStorage(appName istorage.SafeAppName) (storag
 	if !keyspaceExists {
 		return nil, istorage.ErrStorageDoesNotExist
 	}
-	if storage, err = newStorage(p.cluster, appName.String(), p.casPar.KeyspaceWithReplication); err != nil {
+	if storage, err = newStorage(p.cluster, appName.String()); err != nil {
 		return nil, fmt.Errorf("can't create application «%s» keyspace: %w", appName, err)
 	}
 	return storage, nil
@@ -124,7 +124,7 @@ func getSession(cluster *gocql.ClusterConfig) (*gocql.Session, error) {
 	return session, err
 }
 
-func newStorage(cluster *gocql.ClusterConfig, keyspace string, keyspaceWithReplication string) (storage istorage.IAppStorage, err error) {
+func newStorage(cluster *gocql.ClusterConfig, keyspace string) (storage istorage.IAppStorage, err error) {
 	session, err := getSession(cluster)
 	if err != nil {
 		return nil, err
