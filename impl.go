@@ -66,7 +66,7 @@ func (p appStorageProviderType) AppStorage(appName istorage.SafeAppName) (storag
 func isKeyspaceExists(name string, session *gocql.Session) (bool, error) {
 	dummy := ""
 	q := "select keyspace_name from system_schema.keyspaces where keyspace_name = ?;"
-	if logger.IsVerbose {
+	if logger.IsVerbose() {
 		logger.Verbose("executing script:", q)
 	}
 	if err := session.Query(q, name).Scan(&dummy); err != nil {
@@ -99,7 +99,7 @@ func (p appStorageProviderType) Init(appName istorage.SafeAppName) error {
 	// create keyspace
 	//
 	q := fmt.Sprintf("create keyspace %s with replication = %s;", keyspace, p.casPar.KeyspaceWithReplication)
-	if logger.IsVerbose {
+	if logger.IsVerbose() {
 		logger.Verbose("executing script:", q)
 	}
 	err = session.
@@ -112,7 +112,7 @@ func (p appStorageProviderType) Init(appName istorage.SafeAppName) error {
 
 	// prepare storage tables
 	q = fmt.Sprintf(`create table if not exists %s.values (p_key blob, c_col blob, value blob, primary key ((p_key), c_col))`, keyspace)
-	if logger.IsVerbose {
+	if logger.IsVerbose() {
 		logger.Verbose("executing script:", q)
 	}
 	if err = session.Query(q).
@@ -158,7 +158,7 @@ func safeCcols(value []byte) []byte {
 
 func (s *appStorageType) Put(pKey []byte, cCols []byte, value []byte) (err error) {
 	q := fmt.Sprintf("insert into %s.values (p_key, c_col, value) values (?,?,?)", s.keyspace)
-	if logger.IsVerbose {
+	if logger.IsVerbose() {
 		logger.Verbose("executing script:", q)
 	}
 	return s.session.Query(q,
@@ -231,7 +231,7 @@ func (s *appStorageType) Read(ctx context.Context, pKey []byte, startCCols, fini
 func (s *appStorageType) Get(pKey []byte, cCols []byte, data *[]byte) (ok bool, err error) {
 	*data = (*data)[0:0]
 	q := fmt.Sprintf("select value from %s.values where p_key=? and c_col=?", s.keyspace)
-	if logger.IsVerbose {
+	if logger.IsVerbose() {
 		logger.Verbose("executing script:", q)
 	}
 	err = s.session.Query(q, pKey, safeCcols(cCols)).
@@ -264,7 +264,7 @@ func (s *appStorageType) GetBatch(pKey []byte, items []istorage.GetBatchItem) (e
 	}
 	stmt.WriteRune(')')
 
-	if logger.IsVerbose {
+	if logger.IsVerbose() {
 		logger.Verbose("executing script:", stmt.String())
 	}
 	scanner := s.session.Query(stmt.String(), values...).
