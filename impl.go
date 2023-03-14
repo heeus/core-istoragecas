@@ -13,6 +13,7 @@ import (
 
 	"github.com/gocql/gocql"
 	istorage "github.com/heeus/core/istorage"
+	"github.com/untillpro/goutils/logger"
 )
 
 type appStorageProviderType struct {
@@ -64,7 +65,11 @@ func (p appStorageProviderType) AppStorage(appName istorage.SafeAppName) (storag
 
 func isKeyspaceExists(name string, session *gocql.Session) (bool, error) {
 	dummy := ""
-	if err := session.Query("select keyspace_name from system_schema.keyspaces where keyspace_name = ?;", name).Scan(&dummy); err != nil {
+	q := "select keyspace_name from system_schema.keyspaces where keyspace_name = ?;"
+	if logger.IsVerbose {
+		logger.Verbose("executing script:", q)
+	}
+	if err := session.Query(q, name).Scan(&dummy); err != nil {
 		if err == gocql.ErrNotFound {
 			return false, nil
 		}
@@ -94,6 +99,9 @@ func (p appStorageProviderType) Init(appName istorage.SafeAppName) error {
 	// create keyspace
 	//
 	q := fmt.Sprintf("create keyspace %s with replication = %s;", keyspace, p.casPar.KeyspaceWithReplication)
+	if logger.IsVerbose {
+		logger.Verbose("executing script:", q)
+	}
 	err = session.
 		Query(q).
 		Consistency(gocql.Quorum).
@@ -103,7 +111,11 @@ func (p appStorageProviderType) Init(appName istorage.SafeAppName) error {
 	}
 
 	// prepare storage tables
-	if err = session.Query(fmt.Sprintf(`create table if not exists %s.values (p_key blob, c_col blob, value blob, primary key ((p_key), c_col))`, keyspace)).
+	q = fmt.Sprintf(`create table if not exists %s.values (p_key blob, c_col blob, value blob, primary key ((p_key), c_col))`, keyspace)
+	if logger.IsVerbose {
+		logger.Verbose("executing script:", q)
+	}
+	if err = session.Query(q).
 		Consistency(gocql.Quorum).Exec(); err != nil {
 		return fmt.Errorf("can't create table «value»: %w", err)
 	}
@@ -145,7 +157,11 @@ func safeCcols(value []byte) []byte {
 }
 
 func (s *appStorageType) Put(pKey []byte, cCols []byte, value []byte) (err error) {
-	return s.session.Query(fmt.Sprintf("insert into %s.values (p_key, c_col, value) values (?,?,?)", s.keyspace),
+	q := fmt.Sprintf("insert into %s.values (p_key, c_col, value) values (?,?,?)", s.keyspace)
+	if logger.IsVerbose {
+		logger.Verbose("executing script:", q)
+	}
+	return s.session.Query(q,
 		pKey,
 		safeCcols(cCols),
 		value).
@@ -214,7 +230,11 @@ func (s *appStorageType) Read(ctx context.Context, pKey []byte, startCCols, fini
 
 func (s *appStorageType) Get(pKey []byte, cCols []byte, data *[]byte) (ok bool, err error) {
 	*data = (*data)[0:0]
-	err = s.session.Query(fmt.Sprintf("select value from %s.values where p_key=? and c_col=?", s.keyspace), pKey, safeCcols(cCols)).
+	q := fmt.Sprintf("select value from %s.values where p_key=? and c_col=?", s.keyspace)
+	if logger.IsVerbose {
+		logger.Verbose("executing script:", q)
+	}
+	err = s.session.Query(q, pKey, safeCcols(cCols)).
 		Consistency(gocql.Quorum).
 		Scan(data)
 	if errors.Is(err, gocql.ErrNotFound) {
@@ -244,6 +264,9 @@ func (s *appStorageType) GetBatch(pKey []byte, items []istorage.GetBatchItem) (e
 	}
 	stmt.WriteRune(')')
 
+	if logger.IsVerbose {
+		logger.Verbose("executing script:", stmt.String())
+	}
 	scanner := s.session.Query(stmt.String(), values...).
 		Consistency(gocql.Quorum).
 		Iter().
