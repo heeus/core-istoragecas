@@ -158,7 +158,6 @@ func safeCcols(value []byte) []byte {
 
 func (s *appStorageType) Put(pKey []byte, cCols []byte, value []byte) (err error) {
 	q := fmt.Sprintf("insert into %s.values (p_key, c_col, value) values (?,?,?)", s.keyspace)
-	logScript(q)
 	return s.session.Query(q,
 		pKey,
 		safeCcols(cCols),
@@ -229,7 +228,6 @@ func (s *appStorageType) Read(ctx context.Context, pKey []byte, startCCols, fini
 func (s *appStorageType) Get(pKey []byte, cCols []byte, data *[]byte) (ok bool, err error) {
 	*data = (*data)[0:0]
 	q := fmt.Sprintf("select value from %s.values where p_key=? and c_col=?", s.keyspace)
-	logScript(q)
 	err = s.session.Query(q, pKey, safeCcols(cCols)).
 		Consistency(gocql.Quorum).
 		Scan(data)
@@ -260,7 +258,6 @@ func (s *appStorageType) GetBatch(pKey []byte, items []istorage.GetBatchItem) (e
 	}
 	stmt.WriteRune(')')
 
-	logScript(stmt.String())
 	scanner := s.session.Query(stmt.String(), values...).
 		Consistency(gocql.Quorum).
 		Iter().
