@@ -97,7 +97,7 @@ func (p appStorageProviderType) Init(appName istorage.SafeAppName) error {
 		return err
 	}
 	if keyspaceExists {
-		return istorage.ErrStorageAlreadyExist
+		return istorage.ErrStorageAlreadyExists
 	}
 
 	// create keyspace

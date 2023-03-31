@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/gocql/gocql v1.3.1
-	github.com/heeus/core v0.0.0-20230315085521-cf6412c491c5
+	github.com/heeus/core v0.0.0-20230331120630-0073fdeee755
 	github.com/stretchr/testify v1.8.1
 	github.com/untillpro/goutils v0.0.0-20230314181136-99e8d7b881c8
 )
