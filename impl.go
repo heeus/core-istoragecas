@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/gocql/gocql"
-	istorage "github.com/heeus/core/istorage"
 	"github.com/untillpro/goutils/logger"
+	istorage "github.com/untillpro/voedger/pkg/istorage"
 )
 
 type appStorageProviderType struct {

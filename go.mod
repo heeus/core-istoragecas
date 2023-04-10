@@ -4,9 +4,9 @@ go 1.20
 
 require (
 	github.com/gocql/gocql v1.3.1
-	github.com/heeus/core v0.0.0-20230331120630-0073fdeee755
-	github.com/stretchr/testify v1.8.1
-	github.com/untillpro/goutils v0.0.0-20230314181136-99e8d7b881c8
+	github.com/stretchr/testify v1.8.2
+	github.com/untillpro/goutils v0.0.0-20230403105144-8ee1090b2167
+	github.com/untillpro/voedger v0.0.0-20230410100230-65557b9ca89e
 )
 
 require (
