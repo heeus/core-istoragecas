@@ -13,7 +13,7 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/untillpro/goutils/logger"
-	istorage "github.com/untillpro/voedger/pkg/istorage"
+	istorage "github.com/voedger/voedger/pkg/istorage"
 )
 
 type appStorageProviderType struct {

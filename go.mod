@@ -5,13 +5,13 @@ go 1.20
 require (
 	github.com/gocql/gocql v1.3.1
 	github.com/stretchr/testify v1.8.2
-	github.com/untillpro/goutils v0.0.0-20230403105144-8ee1090b2167
-	github.com/untillpro/voedger v0.0.0-20230410100230-65557b9ca89e
+	github.com/untillpro/goutils v0.0.0-20230413153406-ba6af4dbd062
+	github.com/voedger/voedger v0.0.0-20230417123432-872556225d35
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/golang/snappy v0.0.3 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
