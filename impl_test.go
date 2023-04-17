@@ -10,8 +10,8 @@ import (
 	"sync"
 	"testing"
 
-	istorage "github.com/heeus/core/istorage"
 	"github.com/stretchr/testify/require"
+	istorage "github.com/voedger/voedger/pkg/istorage"
 )
 
 const casDefaultPort = 9042

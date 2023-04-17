@@ -7,7 +7,7 @@ package istoragecas
 import (
 	"errors"
 
-	istorage "github.com/heeus/core/istorage"
+	istorage "github.com/voedger/voedger/pkg/istorage"
 )
 
 func Provide(casPar CassandraParamsType) (asf istorage.IAppStorageFactory, err error) {
