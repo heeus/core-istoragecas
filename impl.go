@@ -117,7 +117,7 @@ func (p appStorageProviderType) Init(appName istorage.SafeAppName) error {
 	logScript(q)
 	if err = session.Query(q).
 		Consistency(gocql.Quorum).Exec(); err != nil {
-		return fmt.Errorf("can't create table «value»: %w", err)
+		return fmt.Errorf("can't create table «values»: %w", err)
 	}
 	return nil
 }
